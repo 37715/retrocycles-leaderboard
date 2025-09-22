@@ -445,10 +445,10 @@ body {
     content: '';
     position: absolute;
     display: none;
-    left: 6px;
-    top: 2px;
-    width: 6px;
-    height: 10px;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
     border: solid var(--bg-primary);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
@@ -632,6 +632,13 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     width: 100%;
     -webkit-overflow-scrolling: touch;
+    transition: all 0.4s ease-in-out;
+}
+
+.leaderboard-wrapper.transitioning {
+    opacity: 0.3;
+    filter: blur(2px);
+    transform: scale(0.98);
 }
 
 .leaderboard-header {

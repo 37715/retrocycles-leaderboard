@@ -293,12 +293,23 @@ function setupEventListeners() {
         }
         
         advancedStatsCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                leaderboardWrapper.classList.remove('simple-mode');
-            } else {
-                leaderboardWrapper.classList.add('simple-mode');
-            }
-            renderLeaderboard();
+            // Add transition class for smooth effect
+            leaderboardWrapper.classList.add('transitioning');
+            
+            // After a short delay, change the mode and re-render
+            setTimeout(() => {
+                if (this.checked) {
+                    leaderboardWrapper.classList.remove('simple-mode');
+                } else {
+                    leaderboardWrapper.classList.add('simple-mode');
+                }
+                renderLeaderboard();
+                
+                // Remove transition class after content changes
+                setTimeout(() => {
+                    leaderboardWrapper.classList.remove('transitioning');
+                }, 50);
+            }, 200);
         });
     }
 }
