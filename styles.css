@@ -985,6 +985,43 @@ body {
     50% { opacity: 1; }
 }
 
+/* Match item styles */
+.match-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: var(--bg-tertiary);
+    border-left: 4px solid var(--accent-color);
+    position: relative;
+}
+
+.match-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.opponent {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.score {
+    font-family: 'SUSE Mono', monospace;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.match-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-align: right;
+}
+
 /* Custom scrollbar for recent matches */
 .recent-matches::-webkit-scrollbar {
     width: 8px;
