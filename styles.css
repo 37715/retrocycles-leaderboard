@@ -947,6 +947,44 @@ body {
     overflow-y: auto;
 }
 
+/* Loading spinner styles */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+}
+
+.loading-text {
+    font-family: 'SUSE Mono', monospace;
+    font-weight: 200;
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.loading-dots {
+    display: inline-flex;
+    align-items: center;
+}
+
+.loading-dots span {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    animation: loading-dots-fade 1.4s infinite;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.4s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes loading-dots-fade {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+
 /* Custom scrollbar for recent matches */
 .recent-matches::-webkit-scrollbar {
     width: 8px;
