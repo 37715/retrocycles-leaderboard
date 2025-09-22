@@ -304,13 +304,13 @@ function setupEventListeners() {
 }
 
     function getRank(rating) {
-        if (rating < 1800) return { name: 'bronze', icon: 'public/bronze.svg', class: 'rank-bronze' };
-        if (rating < 1900) return { name: 'silver', icon: 'public/silver.svg', class: 'rank-silver' };
-        if (rating < 2000) return { name: 'gold', icon: 'public/gold.svg', class: 'rank-gold' };
-        if (rating < 2100) return { name: 'platinum', icon: 'public/platinum.svg', class: 'rank-platinum' };
-        if (rating < 2200) return { name: 'diamond', icon: 'public/diamond-amethyst-9.svg', class: 'rank-diamond' };
-        if (rating < 2300) return { name: 'master', icon: 'public/master.svg', class: 'rank-master' };
-        return { name: 'grandmaster', icon: 'public/grandmaster.svg', class: 'rank-grandmaster' };
+        if (rating < 1800) return { name: 'bronze', icon: 'bronze.svg', class: 'rank-bronze' };
+        if (rating < 1900) return { name: 'silver', icon: 'silver.svg', class: 'rank-silver' };
+        if (rating < 2000) return { name: 'gold', icon: 'gold.svg', class: 'rank-gold' };
+        if (rating < 2100) return { name: 'platinum', icon: 'platinum.svg', class: 'rank-platinum' };
+        if (rating < 2200) return { name: 'diamond', icon: 'diamond-amethyst-9.svg', class: 'rank-diamond' };
+        if (rating < 2300) return { name: 'master', icon: 'master.svg', class: 'rank-master' };
+        return { name: 'grandmaster', icon: 'grandmaster.svg', class: 'rank-grandmaster' };
     }
 
 function renderLeaderboard() {
