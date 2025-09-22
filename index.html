@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaming Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="title-section">
+                <h1 class="title">Retrocycles Pickup Leaderboard</h1>
+                <span class="gamemode-badge">TST</span>
+            </div>
+            <p class="subtitle">Competitive rankings and statistics</p>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <div class="theme-toggle-background">
+                    <svg class="theme-toggle-sun" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="theme-toggle-moon" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </div>
+                <div class="theme-toggle-slider">
+                    <svg class="theme-toggle-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </div>
+            </button>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label class="control-label">Time Period</label>
+                <div class="time-toggle">
+                    <button class="toggle-btn active" data-period="alltime">All Time</button>
+                    <button class="toggle-btn" data-period="seasonal">Seasonal</button>
+                    <button class="toggle-btn" data-period="monthly">Monthly</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Region</label>
+                <div class="region-toggle">
+                    <button class="region-btn active" data-region="combined">Combined</button>
+                    <button class="region-btn" data-region="us">US Only</button>
+                    <button class="region-btn" data-region="eu">EU Only</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Sort By</label>
+                <div class="sort-toggle">
+                    <button class="sort-btn active" data-sort="normal">Rating</button>
+                    <button class="sort-btn" data-sort="position">Position</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="leaderboard-wrapper">
+                <div class="leaderboard-header">
+                    <div class="rank-col">#</div>
+                    <div class="player-col">Player</div>
+                    <div class="rating-col">Rating</div>
+                    <div class="change-col">Change</div>
+                    <div class="activity-col">Last Active</div>
+                    <div class="delta-col">30d Δ</div>
+                    <div class="matches-col">Matches</div>
+                    <div class="winrate-col">Win Rate</div>
+                    <div class="avg-place-col">Avg Place</div>
+                    <div class="alive-col">Alive %</div>
+                    <div class="points-col">Net Points</div>
+                    <div class="avg-score-col">Avg Score</div>
+                    <div class="high-score-col">High Score</div>
+                    <div class="kd-col">K/D</div>
+                </div>
+
+                <div class="leaderboard-content" id="leaderboard">
+                    <!-- Leaderboard entries will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="stats-section">
+                    <h3 class="section-title">Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">641</div>
+                            <div class="stat-label">matches played</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">10,231</div>
+                            <div class="stat-label">rounds played</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">12,139</div>
+                            <div class="stat-label">minutes survived</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-matches-section">
+                    <h3 class="section-title">Recent Matches</h3>
+                    <div class="recent-matches" id="recent-matches">
+                        <!-- Recent matches will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="highest-scores-section">
+                    <h3 class="section-title">Highest Scores</h3>
+                    <div class="score-tabs">
+                        <button class="score-tab active" data-tab="scores">Scores</button>
+                        <button class="score-tab" data-tab="netpoints">NetPoints</button>
+                        <button class="score-tab" data-tab="kd">K/D</button>
+                        <button class="score-tab" data-tab="ratings">Ratings</button>
+                    </div>
+                    <div class="score-tabs-row2">
+                        <button class="score-tab" data-tab="winstreaks">Winstreaks</button>
+                        <button class="score-tab" data-tab="lowest">Lowest</button>
+                        <button class="score-tab" data-tab="suicides">Suicides</button>
+                        <button class="score-tab" data-tab="holes">Holes</button>
+                    </div>
+                    <div class="score-tabs-row3">
+                        <button class="score-tab" data-tab="eradicated">Eradicated</button>
+                        <button class="score-tab" data-tab="addicts">Addicts</button>
+                    </div>
+                    <div class="highest-scores-content" id="highest-scores">
+                        <!-- Highest scores will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
