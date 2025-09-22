@@ -284,8 +284,15 @@ function setupEventListeners() {
     // Advanced stats checkbox
     const advancedStatsCheckbox = document.getElementById('advanced-stats');
     if (advancedStatsCheckbox) {
+        // Set initial state based on checkbox
+        const leaderboardWrapper = document.querySelector('.leaderboard-wrapper');
+        if (!advancedStatsCheckbox.checked) {
+            leaderboardWrapper.classList.add('simple-mode');
+        } else {
+            leaderboardWrapper.classList.remove('simple-mode');
+        }
+        
         advancedStatsCheckbox.addEventListener('change', function() {
-            const leaderboardWrapper = document.querySelector('.leaderboard-wrapper');
             if (this.checked) {
                 leaderboardWrapper.classList.remove('simple-mode');
             } else {
@@ -296,15 +303,15 @@ function setupEventListeners() {
     }
 }
 
-function getRank(rating) {
-    if (rating < 1800) return { name: 'bronze', icon: '🥉', class: 'rank-bronze' };
-    if (rating < 1900) return { name: 'silver', icon: '🥈', class: 'rank-silver' };
-    if (rating < 2000) return { name: 'gold', icon: '🥇', class: 'rank-gold' };
-    if (rating < 2100) return { name: 'platinum', icon: '💎', class: 'rank-platinum' };
-    if (rating < 2200) return { name: 'diamond', icon: '💠', class: 'rank-diamond' };
-    if (rating < 2300) return { name: 'master', icon: '👑', class: 'rank-master' };
-    return { name: 'grandmaster', icon: '⭐', class: 'rank-grandmaster' };
-}
+    function getRank(rating) {
+        if (rating < 1800) return { name: 'bronze', icon: 'public/bronze.svg', class: 'rank-bronze' };
+        if (rating < 1900) return { name: 'silver', icon: 'public/silver.svg', class: 'rank-silver' };
+        if (rating < 2000) return { name: 'gold', icon: 'public/gold.svg', class: 'rank-gold' };
+        if (rating < 2100) return { name: 'platinum', icon: 'public/platinum.svg', class: 'rank-platinum' };
+        if (rating < 2200) return { name: 'diamond', icon: 'public/diamond-amethyst-9.svg', class: 'rank-diamond' };
+        if (rating < 2300) return { name: 'master', icon: 'public/master.svg', class: 'rank-master' };
+        return { name: 'grandmaster', icon: 'public/grandmaster.svg', class: 'rank-grandmaster' };
+    }
 
 function renderLeaderboard() {
     const container = document.getElementById('leaderboard');
@@ -334,7 +341,7 @@ function createLeaderboardEntry(player, displayRank) {
     const rank = getRank(player.rating);
 
     entry.innerHTML = `
-        <div class="rank">${displayRank}</div>
+        <div class="rank-position">${displayRank}</div>
         <div class="player">
             ${player.flag ? `<span class="flag ${player.flag}"></span>` : ''}
             <span class="username">${player.username}</span>
@@ -356,10 +363,10 @@ function createLeaderboardEntry(player, displayRank) {
         <div class="score">${player.avgScore}</div>
         <div class="score high-score">${player.highScore}</div>
         <div class="kd">${player.kd}</div>
-        <div class="tier ${rank.class}">
-            <span class="rank-icon">${rank.icon}</span>
-            <span class="rank-name">${rank.name}</span>
-        </div>
+            <div class="tier ${rank.class}">
+                <img class="rank-icon" src="${rank.icon}" alt="${rank.name}" />
+                <span class="rank-name">${rank.name}</span>
+            </div>
     `;
 
     return entry;
