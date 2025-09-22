@@ -218,6 +218,25 @@ function updateThemeIcon(theme) {
 }
 
 function setupEventListeners() {
+    // Navigation links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            const mode = this.getAttribute('data-mode');
+            const gamemodeBadge = document.getElementById('current-mode');
+            if (gamemodeBadge) {
+                gamemodeBadge.textContent = mode.toUpperCase();
+            }
+            
+            renderLeaderboard();
+            renderRecentMatches();
+            renderHighestScores();
+        });
+    });
+
     // Time period toggle buttons
     document.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -238,15 +257,6 @@ function setupEventListeners() {
         });
     });
 
-    // Sort toggle buttons
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentSort = this.dataset.sort;
-            renderLeaderboard();
-        });
-    });
 
     // Score tab buttons
     document.querySelectorAll('.score-tab').forEach(btn => {
@@ -254,6 +264,13 @@ function setupEventListeners() {
             document.querySelectorAll('.score-tab').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentScoreTab = this.dataset.tab;
+            
+            // Update the section title dynamically
+            const titleElement = document.getElementById('highest-scores-title');
+            if (titleElement) {
+                titleElement.textContent = `highest ${this.textContent}`;
+            }
+            
             renderHighestScores();
         });
     });
@@ -263,6 +280,30 @@ function setupEventListeners() {
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+
+    // Advanced stats checkbox
+    const advancedStatsCheckbox = document.getElementById('advanced-stats');
+    if (advancedStatsCheckbox) {
+        advancedStatsCheckbox.addEventListener('change', function() {
+            const leaderboardWrapper = document.querySelector('.leaderboard-wrapper');
+            if (this.checked) {
+                leaderboardWrapper.classList.remove('simple-mode');
+            } else {
+                leaderboardWrapper.classList.add('simple-mode');
+            }
+            renderLeaderboard();
+        });
+    }
+}
+
+function getRank(rating) {
+    if (rating < 1800) return { name: 'bronze', icon: '🥉', class: 'rank-bronze' };
+    if (rating < 1900) return { name: 'silver', icon: '🥈', class: 'rank-silver' };
+    if (rating < 2000) return { name: 'gold', icon: '🥇', class: 'rank-gold' };
+    if (rating < 2100) return { name: 'platinum', icon: '💎', class: 'rank-platinum' };
+    if (rating < 2200) return { name: 'diamond', icon: '💠', class: 'rank-diamond' };
+    if (rating < 2300) return { name: 'master', icon: '👑', class: 'rank-master' };
+    return { name: 'grandmaster', icon: '⭐', class: 'rank-grandmaster' };
 }
 
 function renderLeaderboard() {
@@ -289,6 +330,8 @@ function renderLeaderboard() {
 function createLeaderboardEntry(player, displayRank) {
     const entry = document.createElement('div');
     entry.className = 'leaderboard-entry';
+    
+    const rank = getRank(player.rating);
 
     entry.innerHTML = `
         <div class="rank">${displayRank}</div>
@@ -307,12 +350,16 @@ function createLeaderboardEntry(player, displayRank) {
             <span class="matches-count">${player.matches}</span>
         </div>
         <div class="percentage">${player.winRate}%</div>
-        <div class="stat">${player.avgPlace}</div>
-        <div class="percentage">${player.alive}%</div>
+        <div class="stat avg-place">${player.avgPlace}</div>
+        <div class="percentage alive-percent">${player.alive}%</div>
         <div class="points">${player.netPoints}</div>
         <div class="score">${player.avgScore}</div>
-        <div class="score">${player.highScore}</div>
+        <div class="score high-score">${player.highScore}</div>
         <div class="kd">${player.kd}</div>
+        <div class="tier ${rank.class}">
+            <span class="rank-icon">${rank.icon}</span>
+            <span class="rank-name">${rank.name}</span>
+        </div>
     `;
 
     return entry;

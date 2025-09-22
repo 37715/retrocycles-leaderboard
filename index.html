@@ -3,18 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gaming Leaderboard</title>
+    <title>retrocycles leaderboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <!-- Brand Name -->
+        <div class="brand">retrocycles</div>
+        
+        <!-- Navigation Header -->
+        <nav class="nav-menu-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link group active" data-mode="tst">
+                        <span class="nav-text">TST</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-mode="sbt">
+                        <span class="nav-text">SBT</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-mode="fort">
+                        <span class="nav-text">FORT</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
         <header class="header">
             <div class="title-section">
-                <h1 class="title">Retrocycles Pickup Leaderboard</h1>
-                <span class="gamemode-badge">TST</span>
+                <h1 class="title">leaderboard</h1>
+                <span class="gamemode-badge" id="current-mode">TST</span>
             </div>
-            <p class="subtitle">Competitive rankings and statistics</p>
+            <p class="subtitle">competitive rankings and statistics</p>
             <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
                 <div class="theme-toggle-background">
                     <svg class="theme-toggle-sun" viewBox="0 0 24 24">
@@ -50,7 +81,7 @@
 
         <div class="controls">
             <div class="control-group">
-                <label class="control-label">Time Period</label>
+                <label class="control-label">time period</label>
                 <div class="time-toggle">
                     <button class="toggle-btn active" data-period="alltime">All Time</button>
                     <button class="toggle-btn" data-period="seasonal">Seasonal</button>
@@ -59,7 +90,7 @@
             </div>
             
             <div class="control-group">
-                <label class="control-label">Region</label>
+                <label class="control-label">region</label>
                 <div class="region-toggle">
                     <button class="region-btn active" data-region="combined">Combined</button>
                     <button class="region-btn" data-region="us">US Only</button>
@@ -68,12 +99,13 @@
             </div>
 
             <div class="control-group">
-                <label class="control-label">Sort By</label>
-                <div class="sort-toggle">
-                    <button class="sort-btn active" data-sort="normal">Rating</button>
-                    <button class="sort-btn" data-sort="position">Position</button>
-                </div>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="advanced-stats" checked>
+                    <span class="checkmark"></span>
+                    <span class="control-label">advanced stats</span>
+                </label>
             </div>
+
         </div>
 
         <div class="main-content">
@@ -93,6 +125,7 @@
                     <div class="avg-score-col">Avg Score</div>
                     <div class="high-score-col">High Score</div>
                     <div class="kd-col">K/D</div>
+                    <div class="tier-col">Rank</div>
                 </div>
 
                 <div class="leaderboard-content" id="leaderboard">
@@ -102,7 +135,7 @@
 
             <div class="sidebar">
                 <div class="stats-section">
-                    <h3 class="section-title">Stats</h3>
+                    <h3 class="section-title">stats</h3>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-number">641</div>
@@ -120,29 +153,29 @@
                 </div>
 
                 <div class="recent-matches-section">
-                    <h3 class="section-title">Recent Matches</h3>
+                    <h3 class="section-title">recent matches</h3>
                     <div class="recent-matches" id="recent-matches">
                         <!-- Recent matches will be populated by JavaScript -->
                     </div>
                 </div>
 
                 <div class="highest-scores-section">
-                    <h3 class="section-title">Highest Scores</h3>
+                    <h3 class="section-title" id="highest-scores-title">highest scores</h3>
                     <div class="score-tabs">
-                        <button class="score-tab active" data-tab="scores">Scores</button>
-                        <button class="score-tab" data-tab="netpoints">NetPoints</button>
-                        <button class="score-tab" data-tab="kd">K/D</button>
-                        <button class="score-tab" data-tab="ratings">Ratings</button>
+                        <button class="score-tab active" data-tab="scores">scores</button>
+                        <button class="score-tab" data-tab="netpoints">netpoints</button>
+                        <button class="score-tab" data-tab="kd">k/d</button>
+                        <button class="score-tab" data-tab="ratings">ratings</button>
                     </div>
                     <div class="score-tabs-row2">
-                        <button class="score-tab" data-tab="winstreaks">Winstreaks</button>
-                        <button class="score-tab" data-tab="lowest">Lowest</button>
-                        <button class="score-tab" data-tab="suicides">Suicides</button>
-                        <button class="score-tab" data-tab="holes">Holes</button>
+                        <button class="score-tab" data-tab="winstreaks">winstreaks</button>
+                        <button class="score-tab" data-tab="lowest">lowest</button>
+                        <button class="score-tab" data-tab="suicides">suicides</button>
+                        <button class="score-tab" data-tab="holes">holes</button>
                     </div>
                     <div class="score-tabs-row3">
-                        <button class="score-tab" data-tab="eradicated">Eradicated</button>
-                        <button class="score-tab" data-tab="addicts">Addicts</button>
+                        <button class="score-tab" data-tab="eradicated">eradicated</button>
+                        <button class="score-tab" data-tab="addicts">addicts</button>
                     </div>
                     <div class="highest-scores-content" id="highest-scores">
                         <!-- Highest scores will be populated by JavaScript -->
