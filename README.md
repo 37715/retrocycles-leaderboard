@@ -378,12 +378,11 @@ const REGIONS = {
 
 2. **Start local development server**
    ```bash
-   # Navigate to public directory and start server
-   cd public
-   python -m http.server 8000
-
-   # Alternative: Start from project root
+   # From project root directory, serve the public folder
    python -m http.server 8000 --directory public
+
+   # Alternative: Navigate to public and serve from there
+   cd public && python -m http.server 8000
    ```
 
 3. **Access the application**
@@ -423,6 +422,12 @@ python -m http.server 8000
 - Verify all rank icons are in `public/assets/rank-icons/`
 - Check browser console for 404 errors
 - Ensure proper file extensions (.svg, .png)
+
+**Path Resolution Issues**
+- Use `python -m http.server 8000 --directory public` from project root
+- Ensure script path is `/src/script.js` (absolute from server root)
+- Check browser Network tab for failed requests
+- Verify all file paths in HTML match the new structure
 
 3. **Debug API issues**
    - Check Network tab for failed requests
