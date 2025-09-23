@@ -1,0 +1,35 @@
+{
+  "name": "retrocycles-leaderboard",
+  "version": "1.0.0",
+  "description": "A comprehensive leaderboard application for the RETROCYCLES game with real-time player statistics and match history",
+  "main": "public/index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": [
+    "retrocycles",
+    "leaderboard",
+    "gaming",
+    "statistics",
+    "vanilla-js",
+    "real-time"
+  ],
+  "author": "RETROCYCLES Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/retrocycles-leaderboard"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/retrocycles-leaderboard/issues"
+  },
+  "homepage": "https://yourusername.github.io/retrocycles-leaderboard",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

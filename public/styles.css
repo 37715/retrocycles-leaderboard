@@ -1041,6 +1041,12 @@ body {
     font-weight: 500;
     color: var(--text-primary);
     font-size: 0.9rem;
+
+.filter-info {
+    padding: 0.5rem 0;
+    text-align: center;
+    border-top: 1px solid var(--bg-tertiary);
+    margin-top: 0.5rem;
 }
 
 .score {
