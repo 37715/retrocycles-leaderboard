@@ -1,16 +1,39 @@
-﻿// API Configuration - Using direct JSON APIs
-const PLAYER_API_URL = "https://corsproxy.io/?" + encodeURIComponent("https://www.armanelgtron.tk/tststats/api.php?type=history");
+﻿// Unified HTML scraping API URLs
 const MATCHES_API_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/api.php?id=tst&type=history");
 
-// Monthly and seasonal API URLs
-const getMonthlyAPIUrl = (gameMode = 'tst') => {
-    // Try the simple "30 days ago" format you mentioned
-    return "https://corsproxy.io/?" + encodeURIComponent(`https://rankings.trontimes.tk/daterange.php?datel=30%20days%20ago&id=${gameMode}`);
-};
+// Unified leaderboard URL builder
+const getLeaderboardURL = (timePeriod, gameMode, region) => {
+    const baseUrl = "https://rankings.trontimes.tk/daterange.php";
+    let url = baseUrl;
+    let params = [];
 
-const getSeasonalAPIUrl = (gameMode = 'tst') => {
-    // Try the simple "90 days ago" format for seasonal
-    return "https://corsproxy.io/?" + encodeURIComponent(`https://rankings.trontimes.tk/daterange.php?datel=90%20days%20ago&id=${gameMode}`);
+    // Add time period parameter
+    if (timePeriod === 'monthly') {
+        params.push('datel=30%20days%20ago');
+    } else if (timePeriod === 'seasonal') {
+        params.push('datel=90%20days%20ago');
+    }
+    // For 'alltime', no datel parameter needed
+
+    // Add region-specific game mode ID
+    let gameId = gameMode;
+    if (region === 'eu') {
+        gameId = `${gameMode}-eu`;
+    } else if (region === 'us') {
+        gameId = `${gameMode}-us`;
+    }
+
+    // Add id parameter (except for combined all-time which uses no parameters)
+    if (!(timePeriod === 'alltime' && region === 'combined')) {
+        params.push(`id=${gameId}`);
+    }
+
+    // Build final URL
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+
+    return "https://corsproxy.io/?" + encodeURIComponent(url);
 };
 
 let allPlayersData = [];
@@ -107,7 +130,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
         document.getElementById('current-mode').textContent = mode;
 
         // Refetch data for the new game mode
-        fetchPlayerData(currentTimePeriod, getCurrentGameMode());
+        fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion);
     });
 });
 
@@ -138,8 +161,8 @@ if (advancedStatsCheckbox) {
     });
 }
 
-async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst') {
-    console.log(`Fetching player data for ${timePeriod}...`);
+async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst', region = 'combined') {
+    console.log(`Fetching player data for ${timePeriod} ${region}...`);
 
     // Cancel any existing request
     if (currentLoadingRequest) {
@@ -151,8 +174,11 @@ async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst') {
     const requestId = Date.now();
     currentLoadingRequest = { id: requestId, cancelled: false };
 
+    // Create cache key that includes region
+    const cacheKey = `${timePeriod}-${region}`;
+
     // Check cache first
-    const cachedData = getCachedData(timePeriod);
+    const cachedData = getCachedData(cacheKey);
     if (cachedData) {
         // Even cached data should check if request is still valid
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
@@ -168,51 +194,8 @@ async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst') {
     // Show loading state for non-cached requests
     showLoadingState();
 
-    if (timePeriod === 'alltime') {
-        // Use the original API for all-time data
-        try {
-            const response = await fetch(PLAYER_API_URL);
-
-            // Check if request was cancelled during fetch
-            if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-                console.log('Request cancelled during alltime fetch');
-                return;
-            }
-
-            const data = await response.json();
-
-            // Check again after JSON parsing
-            if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-                console.log('Request cancelled after alltime JSON parsing');
-                return;
-            }
-
-            data.forEach((player, index) => {
-                const regions = ['US', 'EU', 'Combined'];
-                player.region = regions[index % 3];
-            });
-
-            const processedData = Array.isArray(data) ? data : (data.players || []);
-
-            // Cache the data
-            setCachedData(timePeriod, processedData);
-
-            allPlayersData = processedData;
-            console.log(`Loaded ${allPlayersData.length} players for ${timePeriod}`);
-            hideLoadingState();
-            renderLeaderboard();
-        } catch (error) {
-            if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-                console.log('Request was cancelled, ignoring error');
-                return;
-            }
-            console.error(`Error fetching ${timePeriod} player data:`, error);
-            hideLoadingState();
-        }
-    } else {
-        // Scrape HTML for monthly/seasonal data
-        await scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId);
-    }
+    // Use unified HTML scraping for all time periods
+    await scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheKey);
 }
 
 // Parse last active time from HTML text like "54265 15 hours ago"
@@ -228,19 +211,19 @@ function parseLastActiveTime(changeDateText) {
     return changeDateText || 'Recently';
 }
 
-// Scrape HTML leaderboard for monthly/seasonal data
-async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
-    console.log(`Scraping HTML leaderboard for ${timePeriod}...`);
+// Unified HTML leaderboard scraping for all time periods and regions
+async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheKey) {
+    console.log(`Scraping HTML leaderboard for ${timePeriod} ${region}...`);
 
-    const daysAgo = timePeriod === 'monthly' ? '30%20days%20ago' : '90%20days%20ago';
-    const htmlUrl = "https://corsproxy.io/?" + encodeURIComponent(`https://rankings.trontimes.tk/daterange.php?datel=${daysAgo}&id=${gameMode}`);
+    const htmlUrl = getLeaderboardURL(timePeriod, gameMode, region);
+    console.log(`Scraping URL: ${htmlUrl}`);
 
     try {
         const response = await fetch(htmlUrl);
 
         // Check if request was cancelled during fetch
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log(`Request cancelled during ${timePeriod} HTML fetch`);
+            console.log(`Request cancelled during ${timePeriod} ${region} HTML fetch`);
             return;
         }
 
@@ -248,7 +231,7 @@ async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
 
         // Check again after HTML parsing
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log(`Request cancelled after ${timePeriod} HTML parsing`);
+            console.log(`Request cancelled after ${timePeriod} ${region} HTML parsing`);
             return;
         }
 
@@ -296,10 +279,23 @@ async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
             // Calculate win rate from visual data or estimate
             const winrate = matches > 0 ? Math.max(0.1, Math.min(0.9, 1.0 - (avgPlace - 1) / 3)) : 0.5;
 
+            // Try to extract net points if available (might be in a different column)
+            let netPoints = 0;
+            if (cells.length > 11) {
+                // Try to find net points in additional columns
+                for (let i = 11; i < cells.length; i++) {
+                    const cellText = cells[i]?.textContent?.trim();
+                    if (cellText && !isNaN(cellText) && Math.abs(parseInt(cellText)) > matches * 100) {
+                        netPoints = parseInt(cellText);
+                        break;
+                    }
+                }
+            }
+
             // Log what we're extracting for the first few players
             if (index <= 3) {
                 console.log(`Player ${index}:`, {
-                    rank, name, elo, latestChange, matches, avgPlace, avgScore, highScore, kd,
+                    rank, name, elo, latestChange, matches, avgPlace, avgScore, highScore, kd, netPoints,
                     totalCells: cells.length,
                     allCells: Array.from(cells).map(cell => cell.textContent?.trim())
                 });
@@ -323,8 +319,8 @@ async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
                     averageScore: avgScore,
                     highScore: highScore,
                     bestScore: highScore,
-                    netPoints: avgScore * matches, // Based on avg score and matches
-                    points: avgScore * matches,
+                    netPoints: netPoints, // Real net points from HTML
+                    points: netPoints,
                     lastActive: lastActive, // Real timestamp from HTML
                     region: ['US', 'EU', 'Combined'][index % 3] // Simulated
                 });
@@ -336,14 +332,14 @@ async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
         if (players.length > 0) {
             // Final check before applying results
             if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-                console.log(`Request cancelled before applying ${timePeriod} results`);
+                console.log(`Request cancelled before applying ${timePeriod} ${region} results`);
                 return;
             }
 
-            // Cache the scraped data
-            setCachedData(timePeriod, players);
+            // Cache the scraped data with region-specific key
+            setCachedData(cacheKey, players);
 
-            // Use HTML data directly since it already contains the accurate monthly stats
+            // Use HTML data directly since it already contains the accurate stats
             allPlayersData = players;
             hideLoadingState();
             renderLeaderboard();
@@ -357,9 +353,10 @@ async function scrapeMonthlyLeaderboard(timePeriod, gameMode, requestId) {
             return;
         }
         console.error(`Error scraping HTML leaderboard:`, error);
-        console.log('Falling back to client-side calculation...');
         hideLoadingState();
-        await fetchPlayerDataFallback(timePeriod, gameMode);
+        // For now, just show empty state instead of fallback
+        allPlayersData = [];
+        renderLeaderboard();
     }
 }
 
@@ -689,16 +686,10 @@ function filterPlayersByTimePeriod(players, timePeriod) {
     return players;
 }
 
+// Region filtering now handled by server-side URLs, no client-side filtering needed
 function filterPlayersByRegion(players, region) {
-    switch (region) {
-        case 'us':
-            return players.filter(player => player.region === 'US');
-        case 'eu':
-            return players.filter(player => player.region === 'EU');
-        case 'combined':
-        default:
-            return players;
-    }
+    // All filtering now done server-side via different URLs
+    return players;
 }
 
 function renderLeaderboard() {
@@ -805,7 +796,7 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
         console.log(`Switched to time period: ${currentTimePeriod}`);
 
         // Refetch data for the new time period
-        fetchPlayerData(currentTimePeriod, getCurrentGameMode());
+        fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion);
     });
 });
 
@@ -815,7 +806,9 @@ document.querySelectorAll('.region-btn').forEach(btn => {
         btn.classList.add('active');
         currentRegion = btn.getAttribute('data-region');
         console.log(`Switched to region: ${currentRegion}`);
-        renderLeaderboard();
+
+        // Refetch data for the new region
+        fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion);
     });
 });
 
@@ -1071,7 +1064,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Load both player data and matches in parallel for better performance
     const loadPromises = [
-        fetchPlayerData(currentTimePeriod, getCurrentGameMode()),
+        fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion),
         fetchMatchesData()
     ];
 
