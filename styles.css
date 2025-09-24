@@ -483,19 +483,15 @@ body {
 
 /* Advanced stats toggle - hide unwanted columns AND headers */
 .simple-mode .change-col,
-.simple-mode .delta-col,
 .simple-mode .avg-place-col,
 .simple-mode .alive-col,
-.simple-mode .points-col,
 .simple-mode .high-score-col,
 .simple-mode .activity-col,
 .simple-mode .avg-score-col,
 .simple-mode .winrate-col,
 .simple-mode .change,
-.simple-mode .delta,
 .simple-mode .avg-place,
 .simple-mode .alive-percent,
-.simple-mode .points,
 .simple-mode .high-score,
 .simple-mode .last-active,
 .simple-mode .percentage,
@@ -655,20 +651,18 @@ body {
     display: grid;
     grid-template-columns:
         40px
-        minmax(140px, 200px)
-        70px
-        70px
-        100px
-        60px
+        minmax(140px, 180px)
         80px
         70px
+        110px
+        90px
+        80px
+        80px
         70px
-        60px
-        80px
-        80px
-        80px
-        60px
-        80px;
+        90px
+        90px
+        70px
+        100px;
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border-color);
     padding: 0.875rem 1rem;
@@ -678,38 +672,52 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     gap: 0.4rem;
-    min-width: 1100px;
+    min-width: 1060px;
 }
 
 .leaderboard-header > div {
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .leaderboard-entry {
     display: grid;
     grid-template-columns:
         40px
-        minmax(140px, 200px)
-        70px
-        70px
-        100px
-        60px
+        minmax(140px, 180px)
         80px
         70px
+        110px
+        90px
+        80px
+        80px
         70px
-        60px
-        80px
-        80px
-        80px
-        60px;
+        90px
+        90px
+        70px
+        100px;
     padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--border-color);
     transition: background-color 0.15s ease;
     font-weight: 400;
     align-items: center;
     gap: 0.4rem;
-    min-width: 1000px;
+    min-width: 1060px;
+}
+
+.leaderboard-entry > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+/* Exception for player column - keep left aligned */
+.leaderboard-entry .player {
+    justify-content: flex-start;
+    text-align: left;
 }
 
 .leaderboard-entry:hover {
@@ -824,18 +832,6 @@ body {
     font-weight: 400;
 }
 
-.delta {
-    font-size: 0.8rem;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-}
-
-.delta.positive { color: #198754; }
-.delta.negative { color: #dc3545; }
-.delta.neutral { color: var(--text-muted); }
-
-[data-theme="dark"] .delta.positive { color: #10b981; }
-[data-theme="dark"] .delta.negative { color: #ef4444; }
 
 .matches {
     display: flex;
@@ -877,11 +873,6 @@ body {
     font-weight: 400;
 }
 
-.points {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    font-weight: 500;
-}
 
 .score {
     font-size: 0.85rem;

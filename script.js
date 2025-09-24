@@ -279,23 +279,11 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
             // Calculate win rate from visual data or estimate
             const winrate = matches > 0 ? Math.max(0.1, Math.min(0.9, 1.0 - (avgPlace - 1) / 3)) : 0.5;
 
-            // Try to extract net points if available (might be in a different column)
-            let netPoints = 0;
-            if (cells.length > 11) {
-                // Try to find net points in additional columns
-                for (let i = 11; i < cells.length; i++) {
-                    const cellText = cells[i]?.textContent?.trim();
-                    if (cellText && !isNaN(cellText) && Math.abs(parseInt(cellText)) > matches * 100) {
-                        netPoints = parseInt(cellText);
-                        break;
-                    }
-                }
-            }
 
             // Log what we're extracting for the first few players
             if (index <= 3) {
                 console.log(`Player ${index}:`, {
-                    rank, name, elo, latestChange, matches, avgPlace, avgScore, highScore, kd, netPoints,
+                    rank, name, elo, latestChange, matches, avgPlace, avgScore, highScore, kd,
                     totalCells: cells.length,
                     allCells: Array.from(cells).map(cell => cell.textContent?.trim())
                 });
@@ -319,8 +307,6 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
                     averageScore: avgScore,
                     highScore: highScore,
                     bestScore: highScore,
-                    netPoints: netPoints, // Real net points from HTML
-                    points: netPoints,
                     lastActive: lastActive, // Real timestamp from HTML
                     region: ['US', 'EU', 'Combined'][index % 3] // Simulated
                 });
@@ -449,8 +435,7 @@ async function supplementWithMatchData(players, timePeriod) {
                 kd: 1.0,
                 avgScore: 0,
                 highScore: 0,
-                latestChange: 0,
-                netPoints: 0
+                latestChange: 0
             };
         }
 
@@ -485,8 +470,6 @@ async function supplementWithMatchData(players, timePeriod) {
             highScore: realHighScore,
             bestScore: realHighScore,
             latestChange: realLatestChange,
-            netPoints: matchStats.totalScore,
-            points: matchStats.totalScore,
             lastActiveDays: daysSinceActive
         };
     });
@@ -603,8 +586,6 @@ async function fetchPlayerDataFallback(timePeriod, gameMode) {
                 bestScore: highScore,
                 numPlay: player.matches,
                 latestChange: ratingChange,
-                netPoints: player.totalScore,
-                points: player.totalScore,
                 region: ['US', 'EU', 'Combined'][Math.floor(Math.random() * 3)] // Still simulated
             };
         });
@@ -741,7 +722,6 @@ function renderLeaderboard() {
         const winrate = Math.round((parseFloat(player.winrate || player.winRate) || 0.5) * 100);
         const avgPlace = parseFloat(player.avgPlace || player.averagePlace || 1.5).toFixed(1);
         const kd = parseFloat(player.kd || player.killDeathRatio || 1.0).toFixed(2);
-        const netPoints = parseInt(player.netPoints || player.points || 500);
         const avgScore = parseInt(player.avgScore || player.averageScore || 400);
         const highScore = parseInt(player.highScore || player.bestScore || 600);
         
@@ -763,7 +743,6 @@ function renderLeaderboard() {
                 ${player.latestChange >= 0 ? '+' : ''}${player.latestChange || 0}
             </div>
             <div class="last-active">${player.lastActive || 'Recently'}</div>
-            <div class="delta neutral">0</div>
             <div class="matches">
                 <div class="winrate-bar">
                     <div class="winrate-fill" style="width: 100%; background: linear-gradient(90deg, #10b981 ${firstRate}%, #f59e0b ${firstRate + secondRate}%, #fb923c ${firstRate + secondRate + thirdRate}%, #ef4444 100%);"></div>
@@ -773,7 +752,6 @@ function renderLeaderboard() {
             <div class="percentage">${winrate}%</div>
             <div class="stat avg-place">${avgPlace}</div>
             <div class="percentage alive-percent">${winrate}%</div>
-            <div class="points">${netPoints}</div>
             <div class="score">${avgScore}</div>
             <div class="score high-score">${highScore}</div>
             <div class="kd">${kd}</div>
@@ -821,13 +799,6 @@ const scoreTabData = {
         { player: 'Johnny', value: 789, rank: 3 },
         { player: 'yourstar@forums', value: 743, rank: 4 },
         { player: 'jfacas', value: 698, rank: 5 }
-    ],
-    netpoints: [
-        { player: 'ellis', value: 1247, rank: 1 },
-        { player: 'jamie@lt', value: 1189, rank: 2 },
-        { player: 'Johnny', value: 1103, rank: 3 },
-        { player: 'yourstar@forums', value: 1056, rank: 4 },
-        { player: 'jfacas', value: 987, rank: 5 }
     ],
     kd: [
         { player: 'ellis', value: 2.84, rank: 1 },
