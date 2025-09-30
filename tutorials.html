@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RETROCYCLES | tutorials</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Name -->
+        <div class="brand">
+            <a href="index.html" style="text-decoration: none; color: inherit;">retrocycles</a>
+        </div>
+
+        <!-- Navigation Header -->
+        <nav class="nav-menu-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="leaderboard.html" class="nav-link group">
+                        <span class="nav-text">leaderboard</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="mazing.html" class="nav-link group">
+                        <span class="nav-text">mazing</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="tutorials.html" class="nav-link group active">
+                        <span class="nav-text">tutorials</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="header">
+            <div class="title-section">
+                <h1 class="title">tutorials</h1>
+            </div>
+            <p class="subtitle">learn the game mechanics and strategies</p>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <div class="theme-toggle-background">
+                    <svg class="theme-toggle-sun" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="theme-toggle-moon" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </div>
+                <div class="theme-toggle-slider">
+                    <svg class="theme-toggle-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </div>
+            </button>
+        </header>
+
+        <!-- Game Mode Selection -->
+        <nav class="gamemode-nav-container">
+            <ul class="gamemode-nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link group active" data-mode="tst">
+                        <span class="nav-text">TST</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-mode="sbt">
+                        <span class="nav-text">SBT</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-mode="fort">
+                        <span class="nav-text">FORT</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="main-content">
+            <div class="page-content">
+                <div class="tutorials-grid">
+                    <div class="tutorial-category">
+                        <h2 class="category-title">game basics</h2>
+                        <div class="tutorial-list">
+                            <div class="tutorial-item">
+                                <h3>getting started</h3>
+                                <p>Learn the fundamentals of retrocycles gameplay</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">beginner</span>
+                                    <span class="duration">5 min</span>
+                                </div>
+                            </div>
+                            <div class="tutorial-item">
+                                <h3>controls & movement</h3>
+                                <p>Master the basic controls and movement mechanics</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">beginner</span>
+                                    <span class="duration">3 min</span>
+                                </div>
+                            </div>
+                            <div class="tutorial-item">
+                                <h3>game modes</h3>
+                                <p>Understanding TST, SBT, and FORT game modes</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">intermediate</span>
+                                    <span class="duration">8 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-category">
+                        <h2 class="category-title">advanced strategies</h2>
+                        <div class="tutorial-list">
+                            <div class="tutorial-item">
+                                <h3>positioning tactics</h3>
+                                <p>Learn optimal positioning for competitive play</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">advanced</span>
+                                    <span class="duration">12 min</span>
+                                </div>
+                            </div>
+                            <div class="tutorial-item">
+                                <h3>timing & prediction</h3>
+                                <p>Master timing and opponent prediction techniques</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">advanced</span>
+                                    <span class="duration">15 min</span>
+                                </div>
+                            </div>
+                            <div class="tutorial-item">
+                                <h3>competitive mindset</h3>
+                                <p>Mental strategies for ranked gameplay</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">expert</span>
+                                    <span class="duration">10 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-category">
+                        <h2 class="category-title">community guides</h2>
+                        <div class="tutorial-list">
+                            <div class="tutorial-item">
+                                <h3>ranking system</h3>
+                                <p>How the ELO rating and tier system works</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">intermediate</span>
+                                    <span class="duration">6 min</span>
+                                </div>
+                            </div>
+                            <div class="tutorial-item">
+                                <h3>tournament play</h3>
+                                <p>Participating in competitive tournaments</p>
+                                <div class="tutorial-meta">
+                                    <span class="difficulty">advanced</span>
+                                    <span class="duration">9 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

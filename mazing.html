@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RETROCYCLES | mazing</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Name -->
+        <div class="brand">
+            <a href="index.html" style="text-decoration: none; color: inherit;">retrocycles</a>
+        </div>
+
+        <!-- Navigation Header -->
+        <nav class="nav-menu-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="leaderboard.html" class="nav-link group">
+                        <span class="nav-text">leaderboard</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="mazing.html" class="nav-link group active">
+                        <span class="nav-text">mazing</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="tutorials.html" class="nav-link group">
+                        <span class="nav-text">tutorials</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="header">
+            <div class="title-section">
+                <h1 class="title">mazing</h1>
+            </div>
+            <p class="subtitle">maze generation and solving challenges</p>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <div class="theme-toggle-background">
+                    <svg class="theme-toggle-sun" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="theme-toggle-moon" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </div>
+                <div class="theme-toggle-slider">
+                    <svg class="theme-toggle-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </div>
+            </button>
+        </header>
+
+        <!-- Difficulty Selection -->
+        <nav class="difficulty-nav-container">
+            <ul class="difficulty-nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link group active" data-difficulty="basic">
+                        <span class="nav-text">basic</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-difficulty="intermediate">
+                        <span class="nav-text">intermediate</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-difficulty="advanced">
+                        <span class="nav-text">advanced</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-difficulty="expert">
+                        <span class="nav-text">expert</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-difficulty="infinite">
+                        <span class="nav-text">infinite</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link group" data-difficulty="demon">
+                        <span class="nav-text">demon</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="main-content">
+            <div class="mazing-gallery">
+                <!-- Gallery Header -->
+                <div class="gallery-header">
+                    <h2 class="gallery-title" id="current-difficulty-title">basic mazes</h2>
+                    <p class="gallery-subtitle">explore and solve these maze challenges</p>
+                    <div class="gallery-stats">
+                        <span class="maze-count" id="maze-count">loading...</span>
+                        <span class="difficulty-indicator" id="difficulty-indicator">basic</span>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="gallery-loading" id="gallery-loading">
+                    <div class="loading-spinner"></div>
+                    <p>loading mazes...</p>
+                </div>
+
+                <!-- Video Gallery Grid -->
+                <div class="maze-grid" id="maze-grid">
+                    <!-- Maze videos will be populated by JavaScript -->
+                </div>
+
+                <!-- Empty State -->
+                <div class="gallery-empty" id="gallery-empty" style="display: none;">
+                    <div class="empty-icon">📁</div>
+                    <h3>no mazes found</h3>
+                    <p>this difficulty level doesn't have any mazes yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
