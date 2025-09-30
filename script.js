@@ -1260,7 +1260,7 @@ let mazeData = {};
 const difficultyConfig = {
     basic: {
         title: 'Basic Mazes',
-        description: 'simple paths perfect for beginners',
+        description: 'you must learn these! lay the foundations. very important.',
         complexity: 'starter'
     },
     easy: {
@@ -1270,7 +1270,7 @@ const difficultyConfig = {
     },
     intermediate: {
         title: 'Intermediate Mazes',
-        description: 'moderate complexity with multiple paths',
+        description: 'keep going! you\'re starting to look kinda cool...',
         complexity: 'moderate'
     },
     medium: {
@@ -1280,7 +1280,7 @@ const difficultyConfig = {
     },
     advanced: {
         title: 'Advanced Mazes',
-        description: 'complex layouts with intricate patterns',
+        description: 'you are starting to show off now...',
         complexity: 'complex'
     },
     hard: {
@@ -1290,12 +1290,12 @@ const difficultyConfig = {
     },
     expert: {
         title: 'Expert Mazes',
-        description: 'master-level challenges for experts',
+        description: 'there\'s more to life than tron you know...',
         complexity: 'extreme'
     },
     infinite: {
         title: 'Infinite Mazes',
-        description: 'endless complexity and recursive patterns',
+        description: 'these vary wildly in difficulty, but they are all good fun and good practice.',
         complexity: 'extreme'
     },
     nightmare: {
@@ -1305,7 +1305,7 @@ const difficultyConfig = {
     },
     demon: {
         title: 'Demon Mazes',
-        description: 'impossibly difficult challenges for the brave',
+        description: 'congrats... you have mastered mazing, now go touch some grass.',
         complexity: 'demonic'
     }
 };
@@ -1468,6 +1468,12 @@ function loadMazesForDifficulty(difficulty) {
         difficultyIndicator.textContent = difficulty;
     }
 
+    // Update gallery subtitle with difficulty description
+    const gallerySubtitle = document.querySelector('.gallery-subtitle');
+    if (gallerySubtitle && difficultyConfig[difficulty]) {
+        gallerySubtitle.textContent = difficultyConfig[difficulty].description;
+    }
+
     // Simulate loading delay (remove in production)
     setTimeout(() => {
         const mazes = mazeData[difficulty] || [];
@@ -1522,7 +1528,6 @@ function createMazeCard(maze) {
         </div>
         <div class="maze-info">
             <h3 class="maze-title">${maze.title}</h3>
-            <p class="maze-description">${maze.description}</p>
             <div class="maze-meta">
                 <span class="maze-complexity">${maze.complexity}</span>
                 <span class="maze-id">#${maze.id}</span>

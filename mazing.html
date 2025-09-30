@@ -42,11 +42,7 @@
             </ul>
         </nav>
 
-        <header class="header">
-            <div class="title-section">
-                <h1 class="title">mazing</h1>
-            </div>
-            <p class="subtitle">maze generation and solving challenges</p>
+        <div class="header-theme-toggle-only">
             <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
                 <div class="theme-toggle-background">
                     <svg class="theme-toggle-sun" viewBox="0 0 24 24">
@@ -78,67 +74,68 @@
                     </svg>
                 </div>
             </button>
-        </header>
+        </div>
 
-        <!-- Difficulty Selection -->
-        <nav class="difficulty-nav-container">
-            <ul class="difficulty-nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link group active" data-difficulty="basic">
-                        <span class="nav-text">basic</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-difficulty="intermediate">
-                        <span class="nav-text">intermediate</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-difficulty="advanced">
-                        <span class="nav-text">advanced</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-difficulty="expert">
-                        <span class="nav-text">expert</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-difficulty="infinite">
-                        <span class="nav-text">infinite</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-difficulty="demon">
-                        <span class="nav-text">demon</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+        <!-- Gallery Header -->
+        <div class="gallery-header">
+            <h2 class="gallery-title" id="current-difficulty-title">basic mazes</h2>
+            <p class="gallery-subtitle">explore and solve these maze challenges</p>
+            <div class="gallery-stats">
+                <span class="maze-count" id="maze-count">loading...</span>
+                <span class="difficulty-indicator" id="difficulty-indicator">basic</span>
+            </div>
+        </div>
 
-        <div class="main-content">
+        <div class="mazing-main-content">
+            <!-- Difficulty Selection -->
+            <nav class="difficulty-nav-container">
+                <ul class="difficulty-nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group active" data-difficulty="basic">
+                            <span class="nav-text">basic</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group" data-difficulty="intermediate">
+                            <span class="nav-text">intermediate</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group" data-difficulty="advanced">
+                            <span class="nav-text">advanced</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group" data-difficulty="expert">
+                            <span class="nav-text">expert</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group" data-difficulty="demon">
+                            <span class="nav-text">demon</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link group" data-difficulty="infinite">
+                            <span class="nav-text">infinite</span>
+                            <span class="nav-border-animation"></span>
+                            <span class="nav-bg-animation"></span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
             <div class="mazing-gallery">
-                <!-- Gallery Header -->
-                <div class="gallery-header">
-                    <h2 class="gallery-title" id="current-difficulty-title">basic mazes</h2>
-                    <p class="gallery-subtitle">explore and solve these maze challenges</p>
-                    <div class="gallery-stats">
-                        <span class="maze-count" id="maze-count">loading...</span>
-                        <span class="difficulty-indicator" id="difficulty-indicator">basic</span>
-                    </div>
-                </div>
 
                 <!-- Loading State -->
                 <div class="gallery-loading" id="gallery-loading">
