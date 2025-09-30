@@ -791,13 +791,13 @@ function parseMatchTable(table, matchIndex) {
 }
 
 function getRank(elo) {
-    if (elo < 1800) return { name: 'bronze', icon: 'bronze.svg', class: 'rank-bronze' };
-    if (elo < 1900) return { name: 'silver', icon: 'silver.svg', class: 'rank-silver' };
-    if (elo < 2000) return { name: 'gold', icon: 'gold.svg', class: 'rank-gold' };
-    if (elo < 2100) return { name: 'platinum', icon: 'platinum.svg', class: 'rank-platinum' };
-    if (elo < 2200) return { name: 'diamond', icon: 'diamond-amethyst-9.svg', class: 'rank-diamond' };
-    if (elo < 2300) return { name: 'master', icon: 'master.svg', class: 'rank-master' };
-    return { name: 'grandmaster', icon: 'grandmaster.svg', class: 'rank-grandmaster' };
+    if (elo < 1800) return { name: 'bronze', icon: 'public/images/ranks/bronze.svg', class: 'rank-bronze' };
+    if (elo < 1900) return { name: 'silver', icon: 'public/images/ranks/silver.svg', class: 'rank-silver' };
+    if (elo < 2000) return { name: 'gold', icon: 'public/images/ranks/gold.svg', class: 'rank-gold' };
+    if (elo < 2100) return { name: 'platinum', icon: 'public/images/ranks/platinum.svg', class: 'rank-platinum' };
+    if (elo < 2200) return { name: 'diamond', icon: 'public/images/ranks/diamond-amethyst-9.svg', class: 'rank-diamond' };
+    if (elo < 2300) return { name: 'master', icon: 'public/images/ranks/master.svg', class: 'rank-master' };
+    return { name: 'grandmaster', icon: 'public/images/ranks/grandmaster.svg', class: 'rank-grandmaster' };
 }
 
 
@@ -1381,7 +1381,7 @@ function generateMazeDataForDifficulty(difficulty, fileCount) {
             id: `${difficulty}_${String(i).padStart(3, '0')}`,
             title: customTitle,
             description: config.description,
-            videoUrl: `assets/mazes/${difficulty}/${i}.webm`,
+            videoUrl: `public/assets/mazes/${difficulty}/${i}.webm`,
             complexity: config.complexity,
             difficulty: difficulty
         });

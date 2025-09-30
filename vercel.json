@@ -1,0 +1,19 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/leaderboard", "destination": "/leaderboard.html" },
+    { "source": "/mazing", "destination": "/mazing.html" },
+    { "source": "/tutorials", "destination": "/tutorials.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    }
+  ]
+}
