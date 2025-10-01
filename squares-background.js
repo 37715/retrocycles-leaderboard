@@ -74,10 +74,6 @@ class SquaresBackground {
         );
 
         this.hoveredSquare = { x: hoveredSquareX, y: hoveredSquareY };
-
-        // Debug logging
-        console.log('Mouse:', mouseX, mouseY);
-        console.log('Hovered Square:', this.hoveredSquare);
     }
 
     handleMouseLeave() {
@@ -109,7 +105,6 @@ class SquaresBackground {
                     gridX === this.hoveredSquare.x &&
                     gridY === this.hoveredSquare.y
                 ) {
-                    console.log('Drawing hover at:', gridX, gridY, 'square pos:', squareX, squareY);
                     this.ctx.fillStyle = this.hoverFillColor;
                     this.ctx.fillRect(squareX, squareY, this.squareSize, this.squareSize);
                 }
@@ -119,6 +114,22 @@ class SquaresBackground {
                 this.ctx.strokeRect(squareX, squareY, this.squareSize, this.squareSize);
             }
         }
+
+        // Apply subtle radial gradient vignette effect
+        const gradient = this.ctx.createRadialGradient(
+            this.canvas.width / 2,
+            this.canvas.height / 2,
+            0,
+            this.canvas.width / 2,
+            this.canvas.height / 2,
+            Math.sqrt(Math.pow(this.canvas.width, 2) + Math.pow(this.canvas.height, 2)) / 2
+        );
+        gradient.addColorStop(0, 'rgba(6, 6, 6, 0)');
+        gradient.addColorStop(0.6, 'rgba(6, 6, 6, 0)');  // Start fade a bit earlier
+        gradient.addColorStop(1, 'rgba(6, 6, 6, 0.85)');  // Stronger fade at edges
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     updateAnimation() {
