@@ -2076,21 +2076,9 @@ body {
    MAZING GALLERY STYLES
    ===================================== */
 
-/* Theme toggle only header for mazing page */
-.header-theme-toggle-only {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.header-theme-toggle-only .theme-toggle {
-    position: fixed;
-    top: 240px;
-    left: 12rem;
-    pointer-events: auto;
+/* Gallery header needs position relative for theme toggle */
+.gallery-header {
+    position: relative;
 }
 
 /* Difficulty Navigation - Left Column */
