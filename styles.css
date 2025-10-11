@@ -12,7 +12,8 @@
     --accent-color-dark: #1a1a1a;
 }
 
-[data-theme="dark"] {
+[data-theme="dark"],
+[data-theme="light"] {
     --bg-primary: #0a0a0a;
     --bg-secondary: #111111;
     --bg-tertiary: #1a1a1a;
@@ -137,7 +138,8 @@ body {
     padding: 0.5rem 0.75rem;
 }
 
-[data-theme="dark"] .nav-text {
+[data-theme="dark"] .nav-text,
+[data-theme="light"] .nav-text {
     color: #f5f5f5;
 }
 
@@ -150,11 +152,13 @@ body {
 }
 
 /* Dark mode: text goes black when background goes white */
-[data-theme="dark"] .group:hover .nav-text {
+[data-theme="dark"] .group:hover .nav-text,
+[data-theme="light"] .group:hover .nav-text {
     color: black !important;
 }
 
-[data-theme="dark"] .group.active .nav-text {
+[data-theme="dark"] .group.active .nav-text,
+[data-theme="light"] .group.active .nav-text {
     color: black !important;
 }
 
@@ -173,7 +177,8 @@ body {
     transform-origin: center;
 }
 
-[data-theme="dark"] .nav-border-animation {
+[data-theme="dark"] .nav-border-animation,
+[data-theme="light"] .nav-border-animation {
     border-top-color: #f5f5f5;
     border-bottom-color: #f5f5f5;
 }
@@ -202,7 +207,8 @@ body {
     transform-origin: top;
 }
 
-[data-theme="dark"] .nav-bg-animation {
+[data-theme="dark"] .nav-bg-animation,
+[data-theme="light"] .nav-bg-animation {
     background: #f5f5f5;
 }
 
@@ -250,7 +256,8 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="dark"] .gamemode-badge {
+[data-theme="dark"] .gamemode-badge,
+[data-theme="light"] .gamemode-badge {
     background: var(--accent-color);
     color: black;
 }
@@ -310,7 +317,8 @@ body {
     z-index: 2;
 }
 
-[data-theme="dark"] .theme-toggle-slider {
+[data-theme="dark"] .theme-toggle-slider,
+[data-theme="light"] .theme-toggle-slider {
     transform: translateX(32px);
     background: var(--accent-color);
 }
@@ -351,12 +359,13 @@ body {
     transition: opacity 0.3s ease;
 }
 
-[data-theme="dark"] .theme-toggle-moon {
+[data-theme="dark"] .theme-toggle-moon,
+[data-theme="light"] .theme-toggle-moon {
     opacity: 1;
 }
 
 [data-theme="light"] .theme-toggle-sun {
-    opacity: 1;
+    opacity: 0.8;
 }
 
 .controls {
@@ -410,8 +419,10 @@ body {
     color: white;
 }
 
-[data-theme="dark"] .toggle-btn:hover, 
-[data-theme="dark"] .region-btn:hover {
+[data-theme="dark"] .toggle-btn:hover,
+[data-theme="light"] .toggle-btn:hover,
+[data-theme="dark"] .region-btn:hover,
+[data-theme="light"] .region-btn:hover {
     color: black;
 }
 
@@ -420,8 +431,10 @@ body {
     z-index: 2;
 }
 
-[data-theme="dark"] .toggle-btn.active, 
-[data-theme="dark"] .region-btn.active {
+[data-theme="dark"] .toggle-btn.active,
+[data-theme="light"] .toggle-btn.active,
+[data-theme="dark"] .region-btn.active,
+[data-theme="light"] .region-btn.active {
     color: black;
 }
 
@@ -441,8 +454,10 @@ body {
     z-index: -1;
 }
 
-[data-theme="dark"] .toggle-btn::after, 
-[data-theme="dark"] .region-btn::after {
+[data-theme="dark"] .toggle-btn::after,
+[data-theme="light"] .toggle-btn::after,
+[data-theme="dark"] .region-btn::after,
+[data-theme="light"] .region-btn::after {
     background: var(--text-primary);
 }
 
@@ -845,12 +860,14 @@ body {
     background: var(--bg-tertiary);
 }
 
-[data-theme="dark"] .change.positive {
+[data-theme="dark"] .change.positive,
+[data-theme="light"] .change.positive {
     color: #10b981;
     background: rgba(16, 185, 129, 0.15);
 }
 
-[data-theme="dark"] .change.negative {
+[data-theme="dark"] .change.negative,
+[data-theme="light"] .change.negative {
     color: #ef4444;
     background: rgba(239, 68, 68, 0.15);
 }
@@ -1612,7 +1629,8 @@ body {
         height: 20px;
     }
     
-    [data-theme="dark"] .theme-toggle-slider {
+    [data-theme="dark"] .theme-toggle-slider,
+    [data-theme="light"] .theme-toggle-slider {
         transform: translateX(26px);
     }
     
@@ -2260,7 +2278,8 @@ body {
     transition: all 0.3s ease;
 }
 
-[data-theme="dark"] .difficulty-nav-menu .nav-bg-animation {
+[data-theme="dark"] .difficulty-nav-menu .nav-bg-animation,
+[data-theme="light"] .difficulty-nav-menu .nav-bg-animation {
     background: #f5f5f5;
 }
 
@@ -2644,3 +2663,4 @@ body {
         gap: 1rem;
     }
 }
+
