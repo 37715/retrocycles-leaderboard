@@ -2677,6 +2677,35 @@ a.tier:hover {
 }
 
 /* =====================================
+   COMING SOON NOTICE
+   ===================================== */
+
+.coming-soon-notice {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--surface-color);
+    border: 2px solid var(--accent-color);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.coming-soon-notice h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-transform: lowercase;
+    margin: 0 0 1rem 0;
+    color: var(--accent-color);
+}
+
+.coming-soon-notice p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* =====================================
    RANKS PAGE STYLES
    ===================================== */
 
