@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RETROCYCLES | ranks</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Brand Name -->
+        <div class="brand">
+            <a href="/" style="text-decoration: none; color: inherit;">retrocycles</a>
+        </div>
+
+        <!-- Back Button -->
+        <div class="back-button-container">
+            <a href="/leaderboard" class="nav-link group">
+                <span class="nav-text">← back to leaderboard</span>
+                <span class="nav-border-animation"></span>
+                <span class="nav-bg-animation"></span>
+            </a>
+        </div>
+
+        <header class="header">
+            <div class="title-section">
+                <h1 class="title">ranking system</h1>
+            </div>
+            <p class="subtitle">elo ratings and rank tiers</p>
+        </header>
+
+        <!-- Ranks Display -->
+        <div class="ranks-container">
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/bronze.svg" alt="Bronze" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-bronze">bronze</h2>
+                    <p class="rank-range">< 1400 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/silver.svg" alt="Silver" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-silver">silver</h2>
+                    <p class="rank-range">1400 - 1599 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/gold.svg" alt="Gold" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-gold">gold</h2>
+                    <p class="rank-range">1600 - 1899 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/platinum.svg" alt="Platinum" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-platinum">platinum</h2>
+                    <p class="rank-range">1900 - 2099 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/diamond-amethyst-9.svg" alt="Diamond" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-diamond">diamond</h2>
+                    <p class="rank-range">2100 - 2199 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/master.svg" alt="Master" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-master">master</h2>
+                    <p class="rank-range">2200 - 2299 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/grandmaster.svg" alt="Grandmaster" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-grandmaster">grandmaster</h2>
+                    <p class="rank-range">2300 - 2399 ELO</p>
+                </div>
+            </div>
+
+            <div class="rank-card rank-card-legendary">
+                <div class="rank-icon-container">
+                    <img src="images/ranks/legend.png" alt="Legend" class="rank-display-icon">
+                </div>
+                <div class="rank-details">
+                    <h2 class="rank-name rank-legend">legend</h2>
+                    <p class="rank-range">2400+ ELO</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

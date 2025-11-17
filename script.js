@@ -791,13 +791,14 @@ function parseMatchTable(table, matchIndex) {
 }
 
 function getRank(elo) {
-    if (elo < 1800) return { name: 'bronze', icon: 'images/ranks/bronze.svg', class: 'rank-bronze' };
-    if (elo < 1900) return { name: 'silver', icon: 'images/ranks/silver.svg', class: 'rank-silver' };
-    if (elo < 2000) return { name: 'gold', icon: 'images/ranks/gold.svg', class: 'rank-gold' };
+    if (elo < 1400) return { name: 'bronze', icon: 'images/ranks/bronze.svg', class: 'rank-bronze' };
+    if (elo < 1600) return { name: 'silver', icon: 'images/ranks/silver.svg', class: 'rank-silver' };
+    if (elo < 1900) return { name: 'gold', icon: 'images/ranks/gold.svg', class: 'rank-gold' };
     if (elo < 2100) return { name: 'platinum', icon: 'images/ranks/platinum.svg', class: 'rank-platinum' };
     if (elo < 2200) return { name: 'diamond', icon: 'images/ranks/diamond-amethyst-9.svg', class: 'rank-diamond' };
     if (elo < 2300) return { name: 'master', icon: 'images/ranks/master.svg', class: 'rank-master' };
-    return { name: 'grandmaster', icon: 'images/ranks/grandmaster.svg', class: 'rank-grandmaster' };
+    if (elo < 2400) return { name: 'grandmaster', icon: 'images/ranks/grandmaster.svg', class: 'rank-grandmaster' };
+    return { name: 'legend', icon: 'images/ranks/legend.png', class: 'rank-legend' };
 }
 
 
@@ -896,10 +897,10 @@ function renderLeaderboard() {
             <div class="score">${avgScore}</div>
             <div class="score high-score">${highScore}</div>
             <div class="kd">${kd}</div>
-            <div class="tier ${rank.class}">
+            <a href="/ranks" class="tier ${rank.class}">
                 <img class="rank-icon" src="${rank.icon}" alt="${rank.name}" />
                 <span class="rank-name">${rank.name}</span>
-            </div>
+            </a>
         `;
         
         leaderboard.appendChild(entry);

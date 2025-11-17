@@ -577,6 +577,18 @@ body {
 .rank-diamond { color: #b9f2ff; }
 .rank-master { color: #ff6b6b; }
 .rank-grandmaster { color: #9b59b6; }
+.rank-legend { color: #ff4500; }
+
+/* Make tier clickable as link */
+a.tier {
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+a.tier:hover {
+    opacity: 0.7;
+}
 
 /* Simple mode - use flexbox for clean layout */
 .simple-mode .leaderboard-header,
@@ -2661,6 +2673,108 @@ body {
     .maze-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
+    }
+}
+
+/* =====================================
+   RANKS PAGE STYLES
+   ===================================== */
+
+/* Back Button */
+.back-button-container {
+    max-width: 1400px;
+    margin: 1rem auto 0;
+    padding: 0 1rem;
+}
+
+.ranks-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.rank-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.rank-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-color);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.rank-card-legendary {
+    border: 2px solid #ff4500;
+    background: linear-gradient(135deg, var(--surface-color) 0%, rgba(255, 69, 0, 0.05) 100%);
+}
+
+.rank-card-legendary:hover {
+    border-color: #ff4500;
+    box-shadow: 0 8px 24px rgba(255, 69, 0, 0.3);
+}
+
+.rank-icon-container {
+    flex-shrink: 0;
+}
+
+.rank-display-icon {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.rank-details {
+    flex: 1;
+}
+
+.rank-details .rank-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rank-range {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    font-family: 'SUSE Mono', monospace;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .ranks-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .rank-card {
+        padding: 1.5rem;
+    }
+
+    .rank-display-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .rank-details .rank-name {
+        font-size: 1.25rem;
+    }
+
+    .rank-range {
+        font-size: 0.9rem;
     }
 }
 
