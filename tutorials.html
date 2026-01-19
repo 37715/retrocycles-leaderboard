@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RETROCYCLES | tutorials</title>
+    <title>RCL | tutorials</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
     <div class="container">
         <!-- Brand Name -->
         <div class="brand">
-            <a href="/" style="text-decoration: none; color: inherit;">retrocycles</a>
+            <a href="/" style="text-decoration: none; color: inherit;">RCL</a>
         </div>
 
         <!-- Navigation Header -->
@@ -80,122 +80,210 @@
             </button>
         </header>
 
-        <!-- Game Mode Selection -->
-        <nav class="gamemode-nav-container">
-            <ul class="gamemode-nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link group active" data-mode="tst">
-                        <span class="nav-text">TST</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-mode="sbt">
-                        <span class="nav-text">SBT</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link group" data-mode="fort">
-                        <span class="nav-text">FORT</span>
-                        <span class="nav-border-animation"></span>
-                        <span class="nav-bg-animation"></span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
         <div class="main-content">
             <div class="page-content">
-                <div class="tutorials-grid">
-                    <div class="tutorial-category">
-                        <h2 class="category-title">game basics</h2>
-                        <div class="tutorial-list">
-                            <div class="tutorial-item">
-                                <h3>getting started</h3>
-                                <p>Learn the fundamentals of retrocycles gameplay</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">beginner</span>
-                                    <span class="duration">5 min</span>
+                <div class="tutorials-categories">
+                    <details class="tutorial-category">
+                        <summary class="category-summary">
+                            <span class="category-title">game setup</span>
+                            <span class="category-description">camera, graphics, binds</span>
+                            <span class="category-toggle">+</span>
+                        </summary>
+                        <div class="category-content">
+                            <div class="category-intro account-creation">
+                                <h3>account creation</h3>
+                                <p>to play ranked matches you need an account to login to in-game.</p>
+                                <a class="account-link" href="https://retrocyclesleague.com/" target="_blank" rel="noopener noreferrer">retrocyclesleague.com</a>
+                            </div>
+                            <div class="category-intro">
+                                <h3>camera</h3>
+                                <p>having a good camera is very important for retrocycles. fortress players benefit more from a wider lense with a greater look-ahead, while sumoers typically prefer something a little more focused.</p>
+                            </div>
+                            <div class="camera-grid">
+                                <div class="camera-card">
+                                    <div class="camera-image">
+                                        <img src="images/campreviews/koala.png" alt="koala's camera">
+                                    </div>
+                                    <div class="camera-info">
+                                        <h4>koala's camera</h4>
+                                        <div class="camera-command">
+                                            <button class="copy-button" type="button" aria-label="copy koala camera config">copy</button>
+                                            <span>ZONE_HEIGHT 2</span>
+                                            <span>ZONE_SEGMENTS 22</span>
+                                            <span>ZONE_ALPHA 0.2</span>
+                                            <span>CAMERA_CUSTOM_RISE 19.5</span>
+                                            <span>CAMERA_CUSTOM_BACK 20</span>
+                                            <span>CAMERA_CUSTOM_PITCH -0.75</span>
+                                            <span>CAMERA_GLANCE_BACK 20</span>
+                                            <span>CAMERA_GLANCE_RISE 19.5</span>
+                                            <span>CAMERA_GLANCE_PITCH -0.75</span>
+                                            <span>START_FOV_1 85</span>
+                                            <span>MAX_IN_RATE 512</span>
+                                            <span>MAX_OUT_RATE 512</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="camera-card">
+                                    <div class="camera-image">
+                                        <img src="images/campreviews/ellis.png" alt="ellis' camera">
+                                    </div>
+                                    <div class="camera-info">
+                                        <h4>ellis' camera</h4>
+                                        <div class="camera-command">
+                                            <button class="copy-button" type="button" aria-label="copy ellis camera config">copy</button>
+                                            <span>zone_seg_length 0.2</span>
+                                            <span>zone_height 0.5</span>
+                                            <span>ZONE_SEGMENTS 22</span>
+                                            <span>zone_alpha 0.2</span>
+                                            <span>camera_custom_rise 34</span>
+                                            <span>camera_custom_back 44</span>
+                                            <span>camera_custom_pitch -0.7</span>
+                                            <span>camera_glance_rise 53</span>
+                                            <span>camera_glance_back 58</span>
+                                            <span>camera_glance_pitch -0.75</span>
+                                            <span>start_fov_1 50</span>
+                                            <span>MAX_IN_RATE 512</span>
+                                            <span>MAX_OUT_RATE 512</span>
+                                            <span>axes_indicator 1</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="tutorial-item">
-                                <h3>controls & movement</h3>
-                                <p>Master the basic controls and movement mechanics</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">beginner</span>
-                                    <span class="duration">3 min</span>
+                            <div class="category-intro">
+                                <h3>graphics</h3>
+                                <p>these wall setups keep the arena readable without losing contrast. each download is the raw texture png so you can drop it in directly.</p>
+                            </div>
+                            <div class="wall-grid">
+                                <div class="wall-card">
+                                    <div class="wall-image">
+                                        <img src="images/campreviews/koalawall.png" alt="koala wall preview">
+                                    </div>
+                                    <div class="wall-info">
+                                        <h4>koala's wall</h4>
+                                        <p>well balanced wall with a clean aesthetic and reliable contrast. turn object textures off for the bike look.</p>
+                                        <div class="wall-download-row">
+                                            <a class="wall-download" href="images/walltextures/koala/dir_wall.png" download>download texture</a>
+                                            <span class="wall-download-note">replace your dir_wall.png file with this in your textures folder</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="wall-card">
+                                    <div class="wall-image">
+                                        <img src="images/campreviews/elliswall.png" alt="ellis wall preview">
+                                    </div>
+                                    <div class="wall-info">
+                                        <h4>ellis' wall</h4>
+                                        <p>darker glossy translucent wall that keeps the arena calm and readable. turn object textures off for the bike look.</p>
+                                        <div class="wall-download-row">
+                                            <a class="wall-download" href="images/walltextures/ellis/dir_wall.png" download>download texture</a>
+                                            <span class="wall-download-note">replace your dir_wall.png file with this in your textures folder</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="wall-card">
+                                    <div class="wall-image">
+                                        <img src="images/campreviews/synwall.png" alt="syn wall preview">
+                                    </div>
+                                    <div class="wall-info">
+                                        <h4>syn's wall</h4>
+                                        <p>the brightest wall with great visibility, just turn wall textures off in game. put object textures on mipmap trilinear for the bike look.</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="tutorial-item">
-                                <h3>game modes</h3>
-                                <p>Understanding TST, SBT, and FORT game modes</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">intermediate</span>
-                                    <span class="duration">8 min</span>
+                            <div class="category-intro">
+                                <h3>key binds</h3>
+                                <p>players will use multiple buttons for each direction to enable double or triple turns. here is a beginner friendly keybind setup to try.</p>
+                            </div>
+                            <div class="bind-card">
+                                <div class="bind-image">
+                                    <img src="images/binds/1.png" alt="beginner keybind setup">
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </details>
 
-                    <div class="tutorial-category">
-                        <h2 class="category-title">advanced strategies</h2>
-                        <div class="tutorial-list">
-                            <div class="tutorial-item">
-                                <h3>positioning tactics</h3>
-                                <p>Learn optimal positioning for competitive play</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">advanced</span>
-                                    <span class="duration">12 min</span>
-                                </div>
+                    <details class="tutorial-category is-disabled">
+                        <summary class="category-summary is-disabled">
+                            <span class="category-title">basic</span>
+                            <span class="category-description">movement, survival, awareness</span>
+                            <span class="category-toggle">+</span>
+                        </summary>
+                        <div class="category-content">
+                            <div class="tutorial-detail">
+                                <h3>movement fundamentals</h3>
+                                <p>Spacing, cornering, and maintaining speed without overcommitting.</p>
                             </div>
-                            <div class="tutorial-item">
-                                <h3>timing & prediction</h3>
-                                <p>Master timing and opponent prediction techniques</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">advanced</span>
-                                    <span class="duration">15 min</span>
-                                </div>
+                            <div class="tutorial-detail">
+                                <h3>survival habits</h3>
+                                <p>Safe pathing, exit routes, and reading pressure in tight zones.</p>
                             </div>
-                            <div class="tutorial-item">
-                                <h3>competitive mindset</h3>
-                                <p>Mental strategies for ranked gameplay</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">expert</span>
-                                    <span class="duration">10 min</span>
-                                </div>
+                            <div class="tutorial-detail">
+                                <h3>map awareness</h3>
+                                <p>Track threats, predict lanes, and avoid tunnel vision.</p>
                             </div>
                         </div>
-                    </div>
+                    </details>
 
-                    <div class="tutorial-category">
-                        <h2 class="category-title">community guides</h2>
-                        <div class="tutorial-list">
-                            <div class="tutorial-item">
-                                <h3>ranking system</h3>
-                                <p>How the ELO rating and tier system works</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">intermediate</span>
-                                    <span class="duration">6 min</span>
-                                </div>
+                    <details class="tutorial-category is-disabled">
+                        <summary class="category-summary is-disabled">
+                            <span class="category-title">advanced</span>
+                            <span class="category-description">timing, traps, competitive play</span>
+                            <span class="category-toggle">+</span>
+                        </summary>
+                        <div class="category-content">
+                            <div class="tutorial-detail">
+                                <h3>timing + prediction</h3>
+                                <p>force reactions by cutting lanes and controlling tempo.</p>
                             </div>
-                            <div class="tutorial-item">
-                                <h3>tournament play</h3>
-                                <p>Participating in competitive tournaments</p>
-                                <div class="tutorial-meta">
-                                    <span class="difficulty">advanced</span>
-                                    <span class="duration">9 min</span>
-                                </div>
+                            <div class="tutorial-detail">
+                                <h3>trap creation</h3>
+                                <p>set multi‑step traps that limit escape options.</p>
+                            </div>
+                            <div class="tutorial-detail">
+                                <h3>ranked mindset</h3>
+                                <p>consistency, tilt control, and decision making under pressure.</p>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="script.js"></script>
+    <script>
+        document.querySelectorAll('.copy-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const commandBox = button.closest('.camera-command');
+                if (!commandBox) {
+                    return;
+                }
+                const lines = Array.from(commandBox.querySelectorAll('span'))
+                    .map((line) => line.textContent.trim())
+                    .filter(Boolean);
+                const text = lines.join('\n');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text);
+                } else {
+                    const temp = document.createElement('textarea');
+                    temp.value = text;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                }
+                button.textContent = 'copied';
+                window.setTimeout(() => {
+                    button.textContent = 'copy';
+                }, 1200);
+            });
+        });
+
+        document.querySelectorAll('.tutorial-category.is-disabled > summary').forEach((summary) => {
+            summary.addEventListener('click', (event) => {
+                event.preventDefault();
+            });
+        });
+    </script>
 </body>
 </html>

@@ -138,21 +138,10 @@ function getCurrentGameMode() {
 document.querySelectorAll('.gamemode-nav-menu .nav-link[data-mode]').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
-        const mode = link.getAttribute('data-mode').toLowerCase();
-
-        // Check if mode is SBT or FORT - show coming soon
-        if (mode === 'sbt' || mode === 'fort') {
-            const leaderboard = document.getElementById("leaderboard");
-            if (leaderboard) {
-                leaderboard.innerHTML = `
-                    <div class="coming-soon-notice">
-                        <h2>coming soon</h2>
-                        <p>${mode.toUpperCase()} leaderboard is currently being developed. check back soon!</p>
-                    </div>
-                `;
-            }
+        if (link.classList.contains('is-disabled')) {
             return;
         }
+        const mode = link.getAttribute('data-mode').toLowerCase();
 
         // Only update active state and fetch data for TST
         document.querySelectorAll('.gamemode-nav-menu .nav-link').forEach(navLink => {
