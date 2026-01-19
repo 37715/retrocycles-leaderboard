@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RCL | player profile</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="profile-page">
+    <div class="container profile-container">
+        <div class="brand">
+            <a href="/" style="text-decoration: none; color: inherit;">RCL</a>
+        </div>
+
+        <nav class="nav-menu-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/mazing" class="nav-link group">
+                        <span class="nav-text">mazing</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/leaderboard" class="nav-link group">
+                        <span class="nav-text">leaderboard</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/tutorials" class="nav-link group">
+                        <span class="nav-text">tutorials</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="profile-hero">
+            <div class="profile-hero-inner">
+                <div class="profile-hero-left">
+                    <div class="profile-hero-meta">player profile</div>
+                    <h1 class="profile-hero-name" id="profile-name">loading...</h1>
+                    <button class="profile-share-btn profile-share-btn-hero" type="button" id="profile-share-btn">share card</button>
+                </div>
+                <div class="profile-hero-right">
+                    <div class="profile-hero-rank">
+                        <img id="profile-rank-icon" class="profile-rank-icon" src="images/ranks/bronze.svg" alt="rank icon">
+                        <div class="profile-rank-info">
+                            <div class="profile-rank-elo" id="profile-elo">—</div>
+                            <div class="profile-rank-name" id="profile-rank-name">loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="profile-body" id="profile-body">
+            <div class="profile-loading">loading profile...</div>
+        </div>
+    </div>
+
+    <div class="profile-card-overlay" id="profile-card-overlay" hidden>
+        <div class="profile-card-modal" id="profile-card-modal">
+            <div class="profile-card-close-row">
+                <button class="profile-card-close" type="button" aria-label="close profile card">×</button>
+            </div>
+            <div class="profile-share-card" id="profile-share-card">
+                <div class="profile-share-gloss"></div>
+                <div class="profile-share-meta">rcl player</div>
+                <div class="profile-share-name" id="profile-share-name">player</div>
+                <div class="profile-share-rank">
+                    <img id="profile-share-icon" src="images/ranks/bronze.svg" alt="rank icon">
+                    <span id="profile-share-rank-name">bronze</span>
+                </div>
+                <div class="profile-share-stats">
+                    <div class="profile-share-stat">
+                        <span>elo</span>
+                        <strong id="profile-share-elo">—</strong>
+                    </div>
+                    <div class="profile-share-stat">
+                        <span>k/d</span>
+                        <strong id="profile-share-kd">—</strong>
+                    </div>
+                </div>
+            </div>
+            <button class="profile-card-share" type="button" id="profile-card-share">copy share link</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

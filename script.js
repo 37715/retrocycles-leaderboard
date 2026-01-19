@@ -8,6 +8,35 @@ console.log = noop;
 console.warn = noop;
 console.error = noop;
 
+// Player history endpoint
+const PLAYER_HISTORY_BASE_URL = 'https://rankings.trontimes.tk/api.php?id=tst&type=history&mp=';
+const getPlayerHistoryUrl = (username) =>
+    `https://corsproxy.io/?${encodeURIComponent(`${PLAYER_HISTORY_BASE_URL}${username}`)}`;
+
+function getPlayerSummary(matches, username) {
+    let totalKills = 0;
+    let totalDeaths = 0;
+    let totalScore = 0;
+    let matchCount = 0;
+
+    matches.forEach((match) => {
+        const players = match.players || [];
+        const entry = players.find((p) => p.player === username);
+        if (!entry) return;
+        const kills = entry.kd?.[0] || 0;
+        const deaths = entry.kd?.[1] || 0;
+        totalKills += kills;
+        totalDeaths += deaths;
+        totalScore += entry.score ?? 0;
+        matchCount += 1;
+    });
+
+    return {
+        averageKd: totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : `${totalKills}.00`,
+        averageScore: matchCount ? Math.round(totalScore / matchCount) : 0
+    };
+}
+
 // Unified leaderboard URL builder
 const getLeaderboardURL = (timePeriod, gameMode, region) => {
     const baseUrl = "https://rankings.trontimes.tk/daterange.php";
@@ -172,7 +201,7 @@ function renderMatchDetails(container, matchData) {
         return `
             <div class="match-table-row" data-team="${teamKey}">
                 <span class="match-team" data-team="${teamKey}"></span>
-                <span class="match-player">${row.playerName}</span>
+                <span class="match-player profile-link" data-username="${row.playerName}">${row.playerName}</span>
                 <span class="match-team-score"></span>
                 <span class="match-player-score">${row.playerScore}</span>
                 <span class="match-player-kd">
@@ -192,26 +221,275 @@ function renderMatchDetails(container, matchData) {
     container.innerHTML = `<div class="match-table">${header}${body}</div>`;
 }
 
+function formatPercent(value) {
+    if (value === null || value === undefined) return '—';
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return '—';
+    const percent = numeric <= 1 ? numeric * 100 : numeric;
+    return `${percent.toFixed(1)}%`;
+}
+
+function formatNetPoints(entryRating, exitRating) {
+    if (entryRating === null || entryRating === undefined || exitRating === null || exitRating === undefined) {
+        return '—';
+    }
+    const delta = exitRating - entryRating;
+    return `${delta > 0 ? '+' : ''}${delta}`;
+}
+
+function computeIndividualPlace(players, playerName) {
+    const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
+    const index = sorted.findIndex((p) => p.player === playerName);
+    return index === -1 ? '—' : index + 1;
+}
+
+function renderPlayerProfile(username, matches) {
+    if (!Array.isArray(matches) || matches.length === 0) {
+        return `<div class="profile-loading">no matches found for this player</div>`;
+    }
+
+    const rows = [];
+    let totalKills = 0;
+    let totalDeaths = 0;
+    let totalScore = 0;
+    let totalAlive = 0;
+    let totalPlayed = 0;
+    let totalEntry = 0;
+    let totalExit = 0;
+    let entryCount = 0;
+    let exitCount = 0;
+
+    const teammateCounts = {};
+    const regionCounts = {};
+
+    matches.forEach((match) => {
+        const players = match.players || [];
+        const entry = players.find((p) => p.player === username);
+        if (!entry) return;
+
+        const kills = entry.kd?.[0] || 0;
+        const deaths = entry.kd?.[1] || 0;
+        const score = entry.score ?? 0;
+        const entryRating = entry.entryRating ?? null;
+        const exitRating = entry.exitRating ?? null;
+
+        totalKills += kills;
+        totalDeaths += deaths;
+        totalScore += score;
+        totalAlive += entry.alive ?? 0;
+        totalPlayed += entry.played ?? 0;
+
+        if (entryRating !== null) {
+            totalEntry += entryRating;
+            entryCount += 1;
+        }
+        if (exitRating !== null) {
+            totalExit += exitRating;
+            exitCount += 1;
+        }
+
+        const teammates = players.filter((p) => p.team === entry.team && p.player !== username);
+        teammates.forEach((mate) => {
+            teammateCounts[mate.player] = (teammateCounts[mate.player] || 0) + 1;
+        });
+
+        const region = match.region || 'unknown';
+        regionCounts[region] = (regionCounts[region] || 0) + 1;
+
+        rows.push({
+            matchId: match.id,
+            date: formatMatchTimestamp(match.name || match.date),
+            teammate: teammates.map((mate) => mate.player).join(', ') || '—',
+            exitRating,
+            change: formatNetPoints(entryRating, exitRating),
+            teamPlace: entry.place ?? '—',
+            indvPlace: computeIndividualPlace(players, entry.player),
+            played: formatPercent(entry.played),
+            alive: formatPercent(entry.alive),
+            score,
+            net: formatNetPoints(entry.entryRating, entry.exitRating),
+            kd: deaths > 0 ? (kills / deaths).toFixed(2) : `${kills}.00`
+        });
+    });
+
+    const averageKd = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : `${totalKills}.00`;
+    const averageScore = rows.length ? Math.round(totalScore / rows.length) : 0;
+    const averageAlive = rows.length ? formatPercent(totalAlive / rows.length) : '—';
+    const averagePlayedRatio = rows.length ? totalPlayed / rows.length : null;
+    const averagePlayed = averagePlayedRatio === null ? '—' : formatPercent(averagePlayedRatio);
+    const rageQuitValue = averagePlayedRatio === null ? null : Math.max(0, 100 - averagePlayedRatio * 100);
+    const rageQuit = rageQuitValue === null ? '—' : `${rageQuitValue.toFixed(1)}%`;
+    let rageEmoji = '';
+    if (rageQuitValue !== null) {
+        if (rageQuitValue > 7) {
+            rageEmoji = '😡';
+        } else if (rageQuitValue > 2) {
+            rageEmoji = '😐';
+        } else {
+            rageEmoji = '🙂';
+        }
+    }
+    const rageLevel = rageQuitValue === null ? 'unknown' : (rageQuitValue > 7 ? 'high' : (rageQuitValue > 2 ? 'mid' : 'low'));
+    const averageEntry = entryCount ? Math.round(totalEntry / entryCount) : '—';
+    const averageExit = exitCount ? Math.round(totalExit / exitCount) : '—';
+
+    const teammateEntries = Object.entries(teammateCounts).sort((a, b) => b[1] - a[1]);
+    const regionEntries = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
+    const teammateTotal = teammateEntries.reduce((sum, [, count]) => sum + count, 0) || 1;
+    const regionTotal = regionEntries.reduce((sum, [, count]) => sum + count, 0) || 1;
+    const teammateTop = teammateEntries.slice(0, 10);
+    const teammateExtra = teammateEntries.slice(10);
+    const regionTop = regionEntries.slice(0, 10);
+    const regionExtra = regionEntries.slice(10);
+
+    return `
+        <div class="profile-summary">
+            <div class="profile-card">
+                <span class="profile-card-label">matches</span>
+                <span class="profile-card-value">${rows.length}</span>
+            </div>
+            <div class="profile-card">
+                <span class="profile-card-label">avg k/d</span>
+                <span class="profile-card-value">${averageKd}</span>
+            </div>
+            <div class="profile-card">
+                <span class="profile-card-label">avg score</span>
+                <span class="profile-card-value">${averageScore}</span>
+            </div>
+            <div class="profile-card">
+                <span class="profile-card-label">avg alive</span>
+                <span class="profile-card-value">${averageAlive}</span>
+            </div>
+            <div class="profile-card profile-card-rage" data-rage="${rageLevel}">
+                <span class="profile-card-label">rage quit rate</span>
+                <span class="profile-card-value">${rageQuit} ${rageEmoji}</span>
+            </div>
+        </div>
+        <div class="profile-breakdowns">
+            <div class="profile-breakdown" data-collapsed="true">
+                <h4>teammates</h4>
+                <div class="profile-breakdown-list">
+                ${teammateTop.map(([name, count]) => {
+                    const percent = Math.round((count / teammateTotal) * 100);
+                    return `
+                        <div class="profile-breakdown-item">
+                            <span>${name}</span>
+                            <div class="profile-breakdown-bar">
+                                <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
+                            </div>
+                            <span>${percent}%</span>
+                        </div>
+                    `;
+                }).join('')}
+                ${teammateExtra.length ? `
+                    <div class="profile-breakdown-extra">
+                        ${teammateExtra.map(([name, count]) => {
+                            const percent = Math.round((count / teammateTotal) * 100);
+                            return `
+                                <div class="profile-breakdown-item">
+                                    <span>${name}</span>
+                                    <div class="profile-breakdown-bar">
+                                        <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
+                                    </div>
+                                    <span>${percent}%</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : ''}
+                </div>
+                ${teammateEntries.length > 10 ? `<button class="profile-breakdown-toggle" type="button">show more</button>` : ''}
+            </div>
+            <div class="profile-breakdown" data-collapsed="true">
+                <h4>regions</h4>
+                <div class="profile-breakdown-list">
+                ${regionTop.map(([name, count]) => {
+                    const percent = Math.round((count / regionTotal) * 100);
+                    return `
+                        <div class="profile-breakdown-item">
+                            <span>${name}</span>
+                            <div class="profile-breakdown-bar">
+                                <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
+                            </div>
+                            <span>${percent}%</span>
+                        </div>
+                    `;
+                }).join('')}
+                ${regionExtra.length ? `
+                    <div class="profile-breakdown-extra">
+                        ${regionExtra.map(([name, count]) => {
+                            const percent = Math.round((count / regionTotal) * 100);
+                            return `
+                                <div class="profile-breakdown-item">
+                                    <span>${name}</span>
+                                    <div class="profile-breakdown-bar">
+                                        <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
+                                    </div>
+                                    <span>${percent}%</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : ''}
+                </div>
+                ${regionEntries.length > 10 ? `<button class="profile-breakdown-toggle" type="button">show more</button>` : ''}
+            </div>
+        </div>
+        <div class="profile-table">
+            <div class="profile-table-header">
+                <span>match</span>
+                <span>teammate</span>
+                <span>exit rating</span>
+                <span>change</span>
+                <span>team place</span>
+                <span>indv place</span>
+                <span>played %</span>
+                <span>alive %</span>
+                <span>score</span>
+                <span>k/d</span>
+            </div>
+            ${rows.map((row) => `
+                <div class="profile-table-row">
+                    <span class="profile-highlight">${row.date}</span>
+                    <span>${row.teammate}</span>
+                    <span>${row.exitRating ?? '—'}</span>
+                    <span>${row.change}</span>
+                    <span>${row.teamPlace}</span>
+                    <span>${row.indvPlace}</span>
+                    <span>${row.played}</span>
+                    <span>${row.alive}</span>
+                    <span class="profile-highlight">${row.score}</span>
+                    <span>${row.kd}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
 function renderMatchHistoryList(matches, listElement) {
     if (!Array.isArray(matches) || matches.length === 0) {
         listElement.innerHTML = `<div class="match-empty">no matches found</div>`;
         return;
     }
 
-    listElement.innerHTML = matches.map((match) => `
-        <div class="match-item" data-match-id="${match.id}">
-            <div class="match-summary">
-                <span class="match-date">${formatMatchTimestamp(match.date)}</span>
-                <span class="match-sep">|</span>
-                <span class="match-rounds">${match.roundCount || 0} rounds</span>
-                <span class="match-sep">|</span>
-                <span class="match-duration">${formatMatchDuration(match.totalTime)}</span>
-                <span class="match-sep">|</span>
-                <span class="match-winner">winner: ${match.winner || 'unknown'}</span>
+    listElement.innerHTML = matches.map((match) => {
+        const winner = match.winner || 'unknown';
+        const winnerKey = winner.toLowerCase();
+        return `
+            <div class="match-item" data-match-id="${match.id}">
+                <div class="match-summary">
+                    <span class="match-date">${formatMatchTimestamp(match.date)}</span>
+                    <span class="match-sep">|</span>
+                    <span class="match-rounds">${match.roundCount || 0} rounds</span>
+                    <span class="match-sep">|</span>
+                    <span class="match-duration">${formatMatchDuration(match.totalTime)}</span>
+                    <span class="match-sep">|</span>
+                    <span class="match-winner">winner: <span class="match-winner-team" data-team="${winnerKey}">${winner.toLowerCase()}</span></span>
+                </div>
+                <div class="match-detail-body"></div>
             </div>
-            <div class="match-detail-body"></div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Loading and request management
@@ -1026,10 +1304,11 @@ function renderLeaderboard() {
         const thirdRate = Math.max(15, Math.min(35, 25 + (avgPlaceNum - 1.5) * 5));
         const fourthRate = Math.max(10, 100 - firstRate - secondRate - thirdRate);
         
+        entry.classList.add(`rank-tint-${rank.class}`);
         entry.innerHTML = `
             <div class="rank-position">${player.rank}</div>
             <div class="player">
-                <span class="username">${player.name || player.playerName}</span>
+                <span class="username profile-link" data-username="${player.name || player.playerName}">${player.name || player.playerName}</span>
             </div>
             <div class="rating">${player.elo || player.rating}</div>
             <div class="change ${player.latestChange >= 0 ? 'positive' : 'negative'}">
@@ -1405,6 +1684,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const matchHistoryList = document.getElementById('match-history-list');
     const matchHistoryButton = document.querySelector('.match-history-btn');
     const matchHistoryClose = document.querySelector('.match-history-close');
+    const matchHistoryMore = document.querySelector('.match-history-more');
     let globalProgress = document.querySelector('.scroll-progress');
 
     const ensureProgressBar = (container, className) => {
@@ -1433,6 +1713,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.body.classList.remove('no-scroll');
         const matchHistoryProgress = ensureProgressBar(matchHistoryPanel, 'match-history-progress');
         const matchHistoryFill = matchHistoryProgress?.querySelector('.scroll-progress-fill');
+        let matchHistoryData = [];
+        let matchHistoryExpanded = false;
+
+        const renderMatchHistory = () => {
+            const list = matchHistoryExpanded ? matchHistoryData : matchHistoryData.slice(0, 10);
+            renderMatchHistoryList(list, matchHistoryList);
+            if (matchHistoryMore) {
+                matchHistoryMore.style.display = matchHistoryData.length > 10 ? 'inline-flex' : 'none';
+                matchHistoryMore.textContent = matchHistoryExpanded ? 'show less' : 'show more';
+            }
+        };
 
         const openMatchHistory = async () => {
             matchHistoryOverlay.removeAttribute('hidden');
@@ -1443,7 +1734,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 matchHistoryList.innerHTML = `<div class="match-empty">loading matches...</div>`;
                 try {
                     const matches = await fetchMatchHistory(1);
-                    renderMatchHistoryList(matches, matchHistoryList);
+                    matchHistoryData = matches;
+                    renderMatchHistory();
                     matchHistoryPanel.dataset.loaded = 'true';
                     updateProgressFill(matchHistoryList, matchHistoryFill);
 
@@ -1487,6 +1779,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             matchHistoryClose.addEventListener('click', closeMatchHistory);
         }
 
+        if (matchHistoryMore) {
+            matchHistoryMore.addEventListener('click', () => {
+                matchHistoryExpanded = !matchHistoryExpanded;
+                renderMatchHistory();
+            });
+        }
+
         matchHistoryOverlay.addEventListener('click', (event) => {
             if (event.target === matchHistoryOverlay) {
                 closeMatchHistory();
@@ -1503,6 +1802,139 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
     }
+
+    const profileNameEl = document.getElementById('profile-name');
+    const profileBody = document.getElementById('profile-body');
+    const profileEloEl = document.getElementById('profile-elo');
+    const profileRankNameEl = document.getElementById('profile-rank-name');
+    const profileRankIconEl = document.getElementById('profile-rank-icon');
+    const profileShareButton = document.getElementById('profile-share-btn');
+    const profileCardOverlay = document.getElementById('profile-card-overlay');
+    const profileCardModal = document.getElementById('profile-card-modal');
+    const profileCardClose = document.querySelector('.profile-card-close');
+    const profileShareCard = document.getElementById('profile-share-card');
+    const profileShareName = document.getElementById('profile-share-name');
+    const profileShareIcon = document.getElementById('profile-share-icon');
+    const profileShareRankName = document.getElementById('profile-share-rank-name');
+    const profileShareElo = document.getElementById('profile-share-elo');
+    const profileShareKd = document.getElementById('profile-share-kd');
+    const profileCardShare = document.getElementById('profile-card-share');
+    if (profileNameEl && profileBody) {
+        const params = new URLSearchParams(window.location.search);
+        const username = params.get('user') || params.get('username');
+        if (!username) {
+            profileNameEl.textContent = 'unknown player';
+            profileBody.innerHTML = `<div class="profile-loading">no player selected</div>`;
+        } else {
+            profileNameEl.textContent = username;
+            profileBody.innerHTML = `<div class="profile-loading">loading profile...</div>`;
+            try {
+                const response = await fetch(getPlayerHistoryUrl(username));
+                if (!response.ok) {
+                    throw new Error('failed to load profile');
+                }
+                const data = await response.json();
+                profileBody.innerHTML = renderPlayerProfile(username, data);
+                const summary = getPlayerSummary(data, username);
+                if (Array.isArray(data) && data.length > 0 && profileEloEl && profileRankNameEl && profileRankIconEl) {
+                    const sorted = [...data].sort((a, b) => new Date(b.name || b.date) - new Date(a.name || a.date));
+                    const latestMatch = sorted[0];
+                    const latestEntry = latestMatch?.players?.find((p) => p.player === username);
+                    const latestElo = latestEntry?.exitRating ?? latestEntry?.entryRating ?? null;
+                    if (latestElo !== null && latestElo !== undefined) {
+                        profileEloEl.textContent = Math.round(latestElo);
+                        const rankInfo = getRank(latestElo);
+                        profileRankNameEl.textContent = rankInfo.name;
+                        profileRankIconEl.src = rankInfo.icon;
+                        profileRankIconEl.alt = rankInfo.name;
+                        document.body.dataset.rank = rankInfo.name;
+                        if (profileShareCard && profileShareName && profileShareIcon && profileShareRankName && profileShareElo && profileShareKd) {
+                            profileShareCard.dataset.rank = rankInfo.name;
+                            profileShareName.textContent = username.toLowerCase();
+                            profileShareIcon.src = rankInfo.icon;
+                            profileShareIcon.alt = rankInfo.name;
+                            profileShareRankName.textContent = rankInfo.name;
+                            profileShareElo.textContent = Math.round(latestElo);
+                            profileShareKd.textContent = summary.averageKd;
+                        }
+                    }
+                }
+            } catch (error) {
+                profileBody.innerHTML = `<div class="profile-loading">failed to load player profile</div>`;
+            }
+        }
+    }
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const username = target.dataset.username;
+        if (!username) return;
+        window.location.href = `/profile?user=${encodeURIComponent(username)}`;
+    });
+
+    if (profileShareButton && profileCardOverlay && profileCardModal && profileShareCard) {
+        const openCard = () => {
+            profileCardOverlay.removeAttribute('hidden');
+        };
+        const closeCard = () => {
+            profileCardOverlay.setAttribute('hidden', '');
+            if (profileShareCard) {
+                profileShareCard.style.transform = '';
+            }
+        };
+
+        profileShareButton.addEventListener('click', openCard);
+
+        if (profileCardClose) {
+            profileCardClose.addEventListener('click', closeCard);
+        }
+
+        profileCardOverlay.addEventListener('click', (event) => {
+            if (event.target === profileCardOverlay) {
+                closeCard();
+            }
+        });
+
+        profileShareCard.addEventListener('mousemove', (event) => {
+            const rect = profileShareCard.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const rotateX = ((y / rect.height) - 0.5) * -8;
+            const rotateY = ((x / rect.width) - 0.5) * 8;
+            profileShareCard.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        profileShareCard.addEventListener('mouseleave', () => {
+            profileShareCard.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)';
+        });
+
+        if (profileCardShare) {
+            profileCardShare.addEventListener('click', async () => {
+                const shareUrl = window.location.href;
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    profileCardShare.textContent = 'link copied';
+                } catch (error) {
+                    profileCardShare.textContent = shareUrl;
+                }
+                setTimeout(() => {
+                    profileCardShare.textContent = 'copy share link';
+                }, 1200);
+            });
+        }
+    }
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (!target.classList.contains('profile-breakdown-toggle')) return;
+        const card = target.closest('.profile-breakdown');
+        if (!card) return;
+        const isCollapsed = card.getAttribute('data-collapsed') === 'true';
+        card.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
+        target.textContent = isCollapsed ? 'show less' : 'show more';
+    });
 
     if (!globalProgress) {
         globalProgress = document.createElement('div');
