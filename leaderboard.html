@@ -72,37 +72,6 @@
                 </div>
             <p class="subtitle">competitive rankings and statistics</p>
             <div class="update-info">• updates hourly •</div>
-            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-                <div class="theme-toggle-background">
-                    <svg class="theme-toggle-sun" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                    <svg class="theme-toggle-moon" viewBox="0 0 24 24">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                </div>
-                <div class="theme-toggle-slider">
-                    <svg class="theme-toggle-icon" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                </div>
-            </button>
         </header>
 
         <div class="controls">
@@ -132,6 +101,21 @@
                 </label>
             </div>
 
+            <div class="control-group">
+                <button class="match-history-btn" type="button">match history</button>
+            </div>
+
+        </div>
+
+        <div class="match-history-overlay" id="match-history-overlay" hidden>
+            <div class="match-history-panel" id="match-history-panel" role="dialog" aria-modal="true" aria-label="match history">
+                <div class="match-history-header">
+                    <div class="match-history-title">match history</div>
+                    <div class="match-history-meta">tst · recent</div>
+                    <button class="match-history-close" type="button" aria-label="close match history">×</button>
+                </div>
+                <div class="match-history-list" id="match-history-list"></div>
+            </div>
         </div>
 
         <div class="main-content">

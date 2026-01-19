@@ -1,6 +1,12 @@
-﻿// HTML scraping URLs
+// HTML scraping URLs
 const MATCHES_HTML_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
 const MATCHES_DATA_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
+
+// Silence noisy console output in production UI
+const noop = () => {};
+console.log = noop;
+console.warn = noop;
+console.error = noop;
 
 // Unified leaderboard URL builder
 const getLeaderboardURL = (timePeriod, gameMode, region) => {
@@ -43,6 +49,170 @@ let allMatchesData = [];
 // State management for filters
 let currentTimePeriod = 'alltime';
 let currentRegion = 'combined';
+
+// Match history endpoints (proxied through retrocyclesleague.com)
+const MATCH_HISTORY_BASE_URL = 'https://retrocyclesleague.com/api/history';
+const getMatchHistoryListUrl = (page = 1) =>
+    `${MATCH_HISTORY_BASE_URL}/tst${page ? `?page=${page}` : ''}`;
+const getMatchHistoryDetailUrl = (matchId) =>
+    `${MATCH_HISTORY_BASE_URL}/tst?id=${encodeURIComponent(matchId)}`;
+
+function formatMatchTimestamp(isoString) {
+    if (!isoString) return 'unknown time';
+    const date = new Date(isoString);
+    return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).toLowerCase();
+}
+
+function formatMatchDuration(totalSeconds) {
+    if (!totalSeconds && totalSeconds !== 0) return 'unknown';
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    return `${minutes}m ${seconds}s`;
+}
+
+async function fetchMatchHistory(page = 1) {
+    const response = await fetch(getMatchHistoryListUrl(page));
+    if (!response.ok) {
+        throw new Error('failed to fetch match history');
+    }
+    return response.json();
+}
+
+async function fetchMatchDetails(matchId) {
+    const response = await fetch(getMatchHistoryDetailUrl(matchId));
+    if (!response.ok) {
+        throw new Error('failed to fetch match details');
+    }
+    return response.json();
+}
+
+function computePlayerTotals(player) {
+    const positions = Array.isArray(player.positions) ? player.positions : [];
+    const totals = positions.reduce(
+        (acc, entry) => {
+            acc.kills += entry.kills || 0;
+            acc.deaths += entry.deaths || 0;
+            acc.score += (entry.kills || 0) * 30 + (entry.holePoints || 0);
+            return acc;
+        },
+        { kills: 0, deaths: 0, score: 0 }
+    );
+    return { ...totals, hasData: positions.length > 0 };
+}
+
+function renderMatchDetails(container, matchData) {
+    if (!matchData || !Array.isArray(matchData.teams)) {
+        container.innerHTML = `<div class="match-detail-loading">no match data available</div>`;
+        return;
+    }
+
+    const teamsSorted = [...matchData.teams].sort((a, b) => (b.score || 0) - (a.score || 0));
+    const rows = [];
+    teamsSorted.forEach((team) => {
+        const players = Array.isArray(team.players) ? team.players : [];
+        rows.push({
+            type: 'team',
+            teamName: team.teamName || 'team',
+            teamScore: team.score ?? 0
+        });
+        players.forEach((player) => {
+            const totals = computePlayerTotals(player);
+            const kd = totals.hasData
+                ? (totals.deaths > 0 ? (totals.kills / totals.deaths).toFixed(2) : `${totals.kills}.00`)
+                : '—';
+            rows.push({
+                type: 'player',
+                teamName: team.teamName || 'team',
+                playerName: player.nickname || player.username || 'player',
+                teamScore: team.score ?? 0,
+                playerScore: totals.hasData ? totals.score : '—',
+                playerKd: kd,
+                kills: totals.kills,
+                deaths: totals.deaths,
+                hasData: totals.hasData
+            });
+        });
+    });
+
+    if (rows.length === 0) {
+        container.innerHTML = `<div class="match-detail-loading">no player stats available</div>`;
+        return;
+    }
+
+    const header = `
+        <div class="match-table-header">
+            <span>team</span>
+            <span>player</span>
+            <span>team score</span>
+            <span>player score</span>
+            <span>k/d</span>
+        </div>
+    `;
+    const normalizeTeamName = (name = '') => name.toLowerCase().replace('team ', '').trim();
+
+    const body = rows.map((row) => {
+        const teamKey = normalizeTeamName(row.teamName);
+        if (row.type === 'team') {
+            return `
+                <div class="match-table-row match-team-row" data-team="${teamKey}">
+                    <span class="match-team" data-team="${teamKey}">${row.teamName}</span>
+                    <span class="match-player"></span>
+                    <span class="match-team-score">${row.teamScore}</span>
+                    <span class="match-player-score"></span>
+                    <span class="match-player-kd"></span>
+                </div>
+            `;
+        }
+        return `
+            <div class="match-table-row" data-team="${teamKey}">
+                <span class="match-team" data-team="${teamKey}"></span>
+                <span class="match-player">${row.playerName}</span>
+                <span class="match-team-score"></span>
+                <span class="match-player-score">${row.playerScore}</span>
+                <span class="match-player-kd">
+                    ${row.playerKd}
+                    ${row.hasData ? `
+                        <span class="match-kd-breakdown">
+                            <span class="match-kills">${row.kills}</span>
+                            <span class="match-kd-sep">/</span>
+                            <span class="match-deaths">${row.deaths}</span>
+                        </span>
+                    ` : ''}
+                </span>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `<div class="match-table">${header}${body}</div>`;
+}
+
+function renderMatchHistoryList(matches, listElement) {
+    if (!Array.isArray(matches) || matches.length === 0) {
+        listElement.innerHTML = `<div class="match-empty">no matches found</div>`;
+        return;
+    }
+
+    listElement.innerHTML = matches.map((match) => `
+        <div class="match-item" data-match-id="${match.id}">
+            <div class="match-summary">
+                <span class="match-date">${formatMatchTimestamp(match.date)}</span>
+                <span class="match-sep">|</span>
+                <span class="match-rounds">${match.roundCount || 0} rounds</span>
+                <span class="match-sep">|</span>
+                <span class="match-duration">${formatMatchDuration(match.totalTime)}</span>
+                <span class="match-sep">|</span>
+                <span class="match-winner">winner: ${match.winner || 'unknown'}</span>
+            </div>
+            <div class="match-detail-body"></div>
+        </div>
+    `).join('');
+}
 
 // Loading and request management
 let currentLoadingRequest = null;
@@ -101,31 +271,6 @@ function showLoadingState() {
 
 function hideLoadingState() {
     isLoading = false;
-}
-
-// Theme management
-function initializeTheme() {
-    // Get saved theme from localStorage, default to 'dark'
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-}
-
-function saveTheme(theme) {
-    localStorage.setItem('theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
-}
-
-// Initialize theme on page load
-initializeTheme();
-
-// Theme toggle
-const themeToggle = document.getElementById('theme-toggle');
-if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        saveTheme(newTheme);
-    });
 }
 
 // Get current game mode
@@ -1254,6 +1399,124 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (document.getElementById('maze-grid')) {
         initializeMazingGallery();
     }
+
+    const matchHistoryOverlay = document.getElementById('match-history-overlay');
+    const matchHistoryPanel = document.getElementById('match-history-panel');
+    const matchHistoryList = document.getElementById('match-history-list');
+    const matchHistoryButton = document.querySelector('.match-history-btn');
+    const matchHistoryClose = document.querySelector('.match-history-close');
+    let globalProgress = document.querySelector('.scroll-progress');
+
+    const ensureProgressBar = (container, className) => {
+        if (!container) return null;
+        let bar = container.querySelector(`.${className}`);
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = className;
+            bar.innerHTML = '<div class="scroll-progress-fill"></div>';
+            container.appendChild(bar);
+        }
+        return bar;
+    };
+
+    const updateProgressFill = (container, fill, baseMultiplier = 0.6, growthMultiplier = 2.4) => {
+        if (!container || !fill) return;
+        const scrollable = container.scrollHeight - container.clientHeight;
+        const ratio = scrollable > 0 ? container.scrollTop / scrollable : 0;
+        const base = container.clientHeight * baseMultiplier;
+        const height = base + container.clientHeight * growthMultiplier * ratio;
+        fill.style.height = `${height}px`;
+    };
+
+    if (matchHistoryOverlay && matchHistoryPanel && matchHistoryList && matchHistoryButton) {
+        matchHistoryOverlay.setAttribute('hidden', '');
+        document.body.classList.remove('no-scroll');
+        const matchHistoryProgress = ensureProgressBar(matchHistoryPanel, 'match-history-progress');
+        const matchHistoryFill = matchHistoryProgress?.querySelector('.scroll-progress-fill');
+
+        const openMatchHistory = async () => {
+            matchHistoryOverlay.removeAttribute('hidden');
+            matchHistoryButton.setAttribute('aria-expanded', 'true');
+            document.body.classList.add('no-scroll');
+
+            if (!matchHistoryPanel.dataset.loaded) {
+                matchHistoryList.innerHTML = `<div class="match-empty">loading matches...</div>`;
+                try {
+                    const matches = await fetchMatchHistory(1);
+                    renderMatchHistoryList(matches, matchHistoryList);
+                    matchHistoryPanel.dataset.loaded = 'true';
+                    updateProgressFill(matchHistoryList, matchHistoryFill);
+
+                    matchHistoryList.querySelectorAll('.match-item').forEach((item) => {
+                        const matchId = item.getAttribute('data-match-id');
+                        const detailBody = item.querySelector('.match-detail-body');
+                        if (!matchId || !detailBody) {
+                            return;
+                        }
+                        fetchMatchDetails(matchId)
+                            .then((details) => {
+                                renderMatchDetails(detailBody, details);
+                                item.dataset.loaded = 'true';
+                            })
+                            .catch(() => {
+                                detailBody.innerHTML = `<div class="match-detail-loading">failed to load match details</div>`;
+                            });
+                    });
+                } catch (error) {
+                    matchHistoryList.innerHTML = `<div class="match-empty">failed to load matches</div>`;
+                }
+            }
+        };
+
+        const closeMatchHistory = () => {
+            matchHistoryOverlay.setAttribute('hidden', '');
+            matchHistoryButton.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('no-scroll');
+        };
+
+        matchHistoryButton.addEventListener('click', () => {
+            const isHidden = matchHistoryOverlay.hasAttribute('hidden');
+            if (isHidden) {
+                openMatchHistory();
+            } else {
+                closeMatchHistory();
+            }
+        });
+
+        if (matchHistoryClose) {
+            matchHistoryClose.addEventListener('click', closeMatchHistory);
+        }
+
+        matchHistoryOverlay.addEventListener('click', (event) => {
+            if (event.target === matchHistoryOverlay) {
+                closeMatchHistory();
+            }
+        });
+
+        matchHistoryList.addEventListener('scroll', () => {
+            updateProgressFill(matchHistoryList, matchHistoryFill);
+        }, { passive: true });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !matchHistoryOverlay.hasAttribute('hidden')) {
+                closeMatchHistory();
+            }
+        });
+    }
+
+    if (!globalProgress) {
+        globalProgress = document.createElement('div');
+        globalProgress.className = 'scroll-progress';
+        globalProgress.innerHTML = '<div class="scroll-progress-fill"></div>';
+        document.body.appendChild(globalProgress);
+    }
+    const globalFill = globalProgress.querySelector('.scroll-progress-fill');
+    const updateGlobalProgress = () => {
+        updateProgressFill(document.documentElement, globalFill);
+    };
+    updateGlobalProgress();
+    window.addEventListener('scroll', updateGlobalProgress, { passive: true });
+    window.addEventListener('resize', updateGlobalProgress);
 });
 
 // =====================================
