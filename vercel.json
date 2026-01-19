@@ -1,18 +1,11 @@
 {
   "rewrites": [
-    {
-      "source": "/profile",
-      "destination": "/profile.html"
-    }
-  ]
-}
-{
-  "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/leaderboard", "destination": "/leaderboard.html" },
     { "source": "/mazing", "destination": "/mazing.html" },
     { "source": "/tutorials", "destination": "/tutorials.html" },
     { "source": "/ranks", "destination": "/ranks.html" }
+    { "source": "/profile", "destination": "/profile.html" }
   ],
   "headers": [
     {
