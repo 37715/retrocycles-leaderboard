@@ -243,6 +243,8 @@ function computeIndividualPlace(players, playerName) {
     return index === -1 ? '—' : index + 1;
 }
 
+let profileSortConfig = { key: 'date', dir: 'desc' };
+
 function renderPlayerProfile(username, matches) {
     if (!Array.isArray(matches) || matches.length === 0) {
         return `<div class="profile-loading">no matches found for this player</div>`;
@@ -299,16 +301,24 @@ function renderPlayerProfile(username, matches) {
         rows.push({
             matchId: match.id,
             date: formatMatchTimestamp(match.name || match.date),
+            dateValue: new Date(match.name || match.date).getTime() || 0,
             teammate: teammates.map((mate) => mate.player).join(', ') || '—',
             exitRating,
             change: formatNetPoints(entryRating, exitRating),
+            changeValue: (entryRating === null || exitRating === null) ? 0 : (exitRating - entryRating),
             teamPlace: entry.place ?? '—',
+            teamPlaceValue: entry.place ?? 0,
             indvPlace: computeIndividualPlace(players, entry.player),
+            indvPlaceValue: computeIndividualPlace(players, entry.player) === '—' ? 0 : computeIndividualPlace(players, entry.player),
             played: formatPercent(entry.played),
+            playedValue: entry.played ?? 0,
             alive: formatPercent(entry.alive),
+            aliveValue: entry.alive ?? 0,
             score,
+            scoreValue: score ?? 0,
             net: formatNetPoints(entry.entryRating, entry.exitRating),
-            kd: deaths > 0 ? (kills / deaths).toFixed(2) : `${kills}.00`
+            kd: deaths > 0 ? (kills / deaths).toFixed(2) : `${kills}.00`,
+            kdValue: deaths > 0 ? (kills / deaths) : kills
         });
     });
 
@@ -341,6 +351,25 @@ function renderPlayerProfile(username, matches) {
     const teammateExtra = teammateEntries.slice(10);
     const regionTop = regionEntries.slice(0, 10);
     const regionExtra = regionEntries.slice(10);
+
+    const sortMap = {
+        date: (a, b) => a.dateValue - b.dateValue,
+        teammate: (a, b) => a.teammate.localeCompare(b.teammate),
+        exitRating: (a, b) => (a.exitRating ?? 0) - (b.exitRating ?? 0),
+        change: (a, b) => a.changeValue - b.changeValue,
+        teamPlace: (a, b) => a.teamPlaceValue - b.teamPlaceValue,
+        indvPlace: (a, b) => a.indvPlaceValue - b.indvPlaceValue,
+        played: (a, b) => a.playedValue - b.playedValue,
+        alive: (a, b) => a.aliveValue - b.aliveValue,
+        score: (a, b) => a.scoreValue - b.scoreValue,
+        kd: (a, b) => a.kdValue - b.kdValue
+    };
+    const sorter = sortMap[profileSortConfig.key] || sortMap.date;
+    const sortedRows = [...rows].sort((a, b) =>
+        sorter(a, b) * (profileSortConfig.dir === 'asc' ? 1 : -1)
+    );
+
+    const sortDir = (key) => (profileSortConfig.key === key ? profileSortConfig.dir : undefined);
 
     return `
         <div class="profile-summary">
@@ -436,19 +465,20 @@ function renderPlayerProfile(username, matches) {
             </div>
         </div>
         <div class="profile-table">
+            <div class="profile-table-title">match history</div>
             <div class="profile-table-header">
-                <span>match</span>
-                <span>teammate</span>
-                <span>exit rating</span>
-                <span>change</span>
-                <span>team place</span>
-                <span>indv place</span>
-                <span>played %</span>
-                <span>alive %</span>
-                <span>score</span>
-                <span>k/d</span>
+                <button data-sort="date" data-sort-dir="${sortDir('date') || ''}">match</button>
+                <button data-sort="teammate" data-sort-dir="${sortDir('teammate') || ''}">teammate</button>
+                <button data-sort="exitRating" data-sort-dir="${sortDir('exitRating') || ''}">exit rating</button>
+                <button data-sort="change" data-sort-dir="${sortDir('change') || ''}">change</button>
+                <button data-sort="teamPlace" data-sort-dir="${sortDir('teamPlace') || ''}">team place</button>
+                <button data-sort="indvPlace" data-sort-dir="${sortDir('indvPlace') || ''}">indv place</button>
+                <button data-sort="played" data-sort-dir="${sortDir('played') || ''}">played %</button>
+                <button data-sort="alive" data-sort-dir="${sortDir('alive') || ''}">alive %</button>
+                <button data-sort="score" data-sort-dir="${sortDir('score') || ''}">score</button>
+                <button data-sort="kd" data-sort-dir="${sortDir('kd') || ''}">k/d</button>
             </div>
-            ${rows.map((row) => `
+            ${sortedRows.map((row) => `
                 <div class="profile-table-row">
                     <span class="profile-highlight">${row.date}</span>
                     <span>${row.teammate}</span>
@@ -1827,6 +1857,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             profileBody.innerHTML = `<div class="profile-loading">no player selected</div>`;
         } else {
             profileNameEl.textContent = username;
+            profileBody.dataset.username = username;
             profileBody.innerHTML = `<div class="profile-loading">loading profile...</div>`;
             try {
                 const response = await fetch(getPlayerHistoryUrl(username));
@@ -1834,6 +1865,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     throw new Error('failed to load profile');
                 }
                 const data = await response.json();
+                window.profileMatches = data;
                 profileBody.innerHTML = renderPlayerProfile(username, data);
                 const summary = getPlayerSummary(data, username);
                 if (Array.isArray(data) && data.length > 0 && profileEloEl && profileRankNameEl && profileRankIconEl) {
@@ -1863,6 +1895,23 @@ document.addEventListener("DOMContentLoaded", async () => {
                 profileBody.innerHTML = `<div class="profile-loading">failed to load player profile</div>`;
             }
         }
+    }
+
+    if (profileBody) {
+        profileBody.addEventListener('click', (event) => {
+            const button = event.target.closest('.profile-table-header button');
+            if (!button || !window.profileMatches) return;
+            const username = profileBody.dataset.username;
+            const key = button.getAttribute('data-sort');
+            if (!username || !key) return;
+            if (profileSortConfig.key === key) {
+                profileSortConfig.dir = profileSortConfig.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                profileSortConfig = { key, dir: 'desc' };
+            }
+            profileBody.innerHTML = renderPlayerProfile(username, window.profileMatches);
+            bindProfileBreakdowns(profileBody);
+        });
     }
 
     document.addEventListener('click', (event) => {

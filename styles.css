@@ -568,6 +568,19 @@ body {
     gap: 0.5rem;
 }
 
+.profile-back {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-decoration: none;
+    width: fit-content;
+    transition: color 0.2s ease;
+}
+
+.profile-back:hover {
+    color: var(--text-primary);
+}
 .profile-hero-right {
     position: absolute;
     top: 1.25rem;
@@ -1001,6 +1014,13 @@ body[data-rank="legend"] .profile-card::after {
     padding: 1rem 1.1rem;
 }
 
+.profile-table-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+}
+
 .profile-table-header,
 .profile-table-row {
     display: grid;
@@ -1016,6 +1036,29 @@ body[data-rank="legend"] .profile-card::after {
     color: var(--text-muted);
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.35rem;
+}
+
+.profile-table-header button {
+    all: unset;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+}
+
+.profile-table-header button:hover {
+    color: var(--text-primary);
+}
+
+.profile-table-header button[data-sort-dir="asc"]::after {
+    content: " ▲";
+    font-size: 0.6rem;
+}
+
+.profile-table-header button[data-sort-dir="desc"]::after {
+    content: " ▼";
+    font-size: 0.6rem;
 }
 
 .profile-table-row {
