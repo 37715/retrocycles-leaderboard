@@ -752,11 +752,11 @@ body {
 }
 
 .profile-share-card[data-rank="grandmaster"] {
-    background: linear-gradient(135deg, rgba(14, 116, 144, 0.3), rgba(99, 102, 241, 0.25));
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.18));
 }
 
 .profile-share-card[data-rank="legend"] {
-    background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(239, 68, 68, 0.25));
+    background: linear-gradient(135deg, rgba(125, 211, 252, 0.32), rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.28));
 }
 
 .profile-share-gloss {
@@ -926,14 +926,14 @@ body[data-rank="master"] .profile-card::after {
 
 body[data-rank="grandmaster"] .profile-hero::after,
 body[data-rank="grandmaster"] .profile-card::after {
-    background: linear-gradient(90deg, #06b6d4, #8b5cf6);
-    box-shadow: 0 0 22px rgba(6, 182, 212, 0.65);
+    background: linear-gradient(90deg, #fcd34d, #fbbf24, #f59e0b);
+    box-shadow: 0 0 18px rgba(251, 191, 36, 0.5);
 }
 
 body[data-rank="legend"] .profile-hero::after,
 body[data-rank="legend"] .profile-card::after {
-    background: linear-gradient(90deg, #f97316, #ef4444);
-    box-shadow: 0 0 26px rgba(239, 68, 68, 0.75);
+    background: linear-gradient(90deg, #7dd3fc, #38bdf8, #0ea5e9);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.75);
 }
 
 .profile-card-label {
@@ -1439,6 +1439,46 @@ body::-webkit-scrollbar {
     position: relative;
 }
 
+.season-select {
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    border: 1px solid var(--text-primary);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: 'SUSE Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 10px;
+}
+
+[data-theme="dark"] .season-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+.season-select:hover {
+    background-color: var(--hover-bg);
+}
+
+.season-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--text-primary);
+}
+
+.season-select option {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.5rem;
+}
+
 .toggle-btn, .region-btn {
     padding: 0.5rem 1rem;
     border: none;
@@ -1566,14 +1606,12 @@ body::-webkit-scrollbar {
 /* Advanced stats toggle - hide unwanted columns AND headers */
 .simple-mode .change-col,
 .simple-mode .avg-place-col,
-.simple-mode .alive-col,
 .simple-mode .high-score-col,
 .simple-mode .activity-col,
 .simple-mode .avg-score-col,
 .simple-mode .winrate-col,
 .simple-mode .change,
 .simple-mode .avg-place,
-.simple-mode .alive-percent,
 .simple-mode .high-score,
 .simple-mode .last-active,
 .simple-mode .percentage,
@@ -1614,9 +1652,18 @@ body::-webkit-scrollbar {
 .rank-gold { color: #ffd700; }
 .rank-platinum { color: #e5e4e2; }
 .rank-diamond { color: #b9f2ff; }
-.rank-master { color: #ff6b6b; }
-.rank-grandmaster { color: #9b59b6; }
-.rank-legend { color: #ff4500; }
+.rank-master {
+    color: #ff6b6b;
+    text-shadow: 0 0 6px rgba(244, 63, 94, 0.25);
+}
+.rank-grandmaster {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.4), 0 0 16px rgba(245, 158, 11, 0.3);
+}
+.rank-legend {
+    color: #7dd3fc;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.6), 0 0 26px rgba(14, 165, 233, 0.55);
+}
 
 /* Make tier clickable as link */
 a.tier {
@@ -1871,8 +1918,59 @@ a.tier:hover {
 .leaderboard-entry.rank-tint-rank-platinum { --rank-tint: rgba(14, 165, 233, 0.12); }
 .leaderboard-entry.rank-tint-rank-diamond { --rank-tint: rgba(99, 102, 241, 0.14); }
 .leaderboard-entry.rank-tint-rank-master { --rank-tint: rgba(244, 63, 94, 0.16); }
-.leaderboard-entry.rank-tint-rank-grandmaster { --rank-tint: rgba(6, 182, 212, 0.18); }
-.leaderboard-entry.rank-tint-rank-legend { --rank-tint: rgba(249, 115, 22, 0.2); }
+.leaderboard-entry.rank-tint-rank-grandmaster { --rank-tint: rgba(251, 191, 36, 0.18); }
+.leaderboard-entry.rank-tint-rank-legend { --rank-tint: rgba(56, 189, 248, 0.26); }
+
+/* Legend row - shiny reflective effect */
+.leaderboard-entry.rank-tint-rank-legend {
+    overflow: hidden;
+    background: linear-gradient(
+        180deg,
+        rgba(56, 189, 248, 0.12) 0%,
+        rgba(14, 165, 233, 0.06) 40%,
+        rgba(56, 189, 248, 0.1) 100%
+    );
+}
+
+.leaderboard-entry.rank-tint-rank-legend::before {
+    background:
+        linear-gradient(270deg, var(--rank-tint) 0%, transparent 70%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 6px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(255, 255, 255, 0.05) 100%);
+    z-index: 0;
+}
+
+.leaderboard-entry.rank-tint-rank-legend::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(
+            110deg,
+            transparent 40%,
+            rgba(255, 255, 255, 0.12) 49%,
+            rgba(186, 230, 253, 0.15) 50%,
+            rgba(255, 255, 255, 0.12) 51%,
+            transparent 60%
+        );
+    background-size: 400% 100%;
+    background-position: 200% 0;
+    animation: legend-shine 20s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+
+@keyframes legend-shine {
+    0% {
+        background-position: 200% 0;
+    }
+    60% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
+}
 
 .leaderboard-entry:nth-child(even) {
     background: var(--bg-tertiary);
@@ -1934,6 +2032,20 @@ a.tier:hover {
     font-weight: 500;
     color: var(--text-primary);
     font-size: 0.95rem;
+}
+
+.leaderboard-entry.rank-tint-rank-master .username {
+    text-shadow: 0 0 5px rgba(244, 63, 94, 0.3);
+}
+
+.leaderboard-entry.rank-tint-rank-grandmaster .username {
+    color: #fcd34d;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.5), 0 0 16px rgba(245, 158, 11, 0.35);
+}
+
+.leaderboard-entry.rank-tint-rank-legend .username {
+    color: #c5f3ff;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.7), 0 0 26px rgba(14, 165, 233, 0.65);
 }
 
 .rating {

@@ -2,12 +2,6 @@
 const MATCHES_HTML_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
 const MATCHES_DATA_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
 
-// Silence noisy console output in production UI
-const noop = () => {};
-console.log = noop;
-console.warn = noop;
-console.error = noop;
-
 // Player history endpoint
 const PLAYER_HISTORY_BASE_URL = 'https://rankings.trontimes.tk/api.php?id=tst&type=history&mp=';
 const getPlayerHistoryUrl = (username) =>
@@ -37,38 +31,45 @@ function getPlayerSummary(matches, username) {
     };
 }
 
-// Unified leaderboard URL builder
-const getLeaderboardURL = (timePeriod, gameMode, region) => {
+// Season configs with API IDs for rankings.trontimes.tk
+// tst = 2026 league season, tst24 = 2023-2025 league season
+const SEASONS = {
+    '2026': { start: '2026-01-01', end: '2026-12-31', apiId: 'tst', label: 'Season 4 (2026)' },
+    '2025': { start: '2025-01-01', end: '2025-12-31', apiId: 'tst24', label: 'Season 3 (2025)' },
+    '2024': { start: '2024-01-01', end: '2024-12-31', apiId: 'tst24', label: 'Season 2 (2024)' },
+    '2023': { start: '2023-01-01', end: '2023-12-31', apiId: 'tst24', label: 'Season 1 (2023)' }
+};
+
+// Unified leaderboard URL builder - uses rankings.trontimes.tk for everything
+const getLeaderboardURL = (year, gameMode, region) => {
     const baseUrl = "https://rankings.trontimes.tk/daterange.php";
-    let url = baseUrl;
+    const yearConfig = SEASONS[year];
+    
+    if (!yearConfig) {
+        return null;
+    }
+    
     let params = [];
-
-    // Add time period parameter
-    if (timePeriod === 'monthly') {
-        params.push('datel=30%20days%20ago');
-    } else if (timePeriod === 'seasonal') {
-        params.push('datel=90%20days%20ago');
+    
+    // Add date range parameters
+    if (yearConfig.start) {
+        params.push(`datel=${yearConfig.start}`);
     }
-    // For 'alltime', no datel parameter needed
-
-    // Add region-specific game mode ID
-    let gameId = gameMode;
+    if (yearConfig.end) {
+        params.push(`date=${yearConfig.end}`);
+    }
+    
+    // Build the API ID with region suffix
+    let apiId = yearConfig.apiId;
     if (region === 'eu') {
-        gameId = `${gameMode}-eu`;
+        apiId += '-eu';
     } else if (region === 'us') {
-        gameId = `${gameMode}-us`;
+        apiId += '-us';
     }
-
-    // Add id parameter (except for combined all-time which uses no parameters)
-    if (!(timePeriod === 'alltime' && region === 'combined')) {
-        params.push(`id=${gameId}`);
-    }
-
-    // Build final URL
-    if (params.length > 0) {
-        url += '?' + params.join('&');
-    }
-
+    params.push(`id=${apiId}`);
+    
+    const url = baseUrl + '?' + params.join('&');
+    
     return "https://corsproxy.io/?" + encodeURIComponent(url);
 };
 
@@ -76,7 +77,7 @@ let allPlayersData = [];
 let allMatchesData = [];
 
 // State management for filters
-let currentTimePeriod = 'alltime';
+let currentTimePeriod = '2026';
 let currentRegion = 'combined';
 
 // Match history endpoints (proxied through retrocyclesleague.com)
@@ -529,9 +530,7 @@ let isLoading = false;
 // Cache system - Extended to 1 hour for better performance
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 const dataCache = {
-    alltime: null,
-    monthly: null,
-    seasonal: null,
+    // Dynamic keys: '2026-combined', '2025-eu', etc.
     matches: null
 };
 
@@ -546,7 +545,6 @@ function getCachedData(key) {
         return null;
     }
 
-    console.log(`Using cached ${key} data`);
     return cached.data;
 }
 
@@ -555,7 +553,6 @@ function setCachedData(key, data) {
         data: data,
         timestamp: Date.now()
     };
-    console.log(`Cached ${key} data`);
 }
 
 // Loading state management
@@ -639,13 +636,11 @@ if (advancedStatsCheckbox) {
     });
 }
 
-async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst', region = 'combined') {
-    console.log(`Fetching player data for ${timePeriod} ${region}...`);
+async function fetchPlayerData(year = '2026', gameMode = 'tst', region = 'combined') {
 
     // Cancel any existing request
     if (currentLoadingRequest) {
         currentLoadingRequest.cancelled = true;
-        console.log('Cancelled previous request');
     }
 
     // Create new request tracker
@@ -653,14 +648,13 @@ async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst', region 
     currentLoadingRequest = { id: requestId, cancelled: false };
 
     // Create cache key that includes region
-    const cacheKey = `${timePeriod}-${region}`;
+    const cacheKey = `${year}-${region}`;
 
     // Check cache first
     const cachedData = getCachedData(cacheKey);
     if (cachedData) {
         // Even cached data should check if request is still valid
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log('Request cancelled before cached data could be used');
             return;
         }
         allPlayersData = cachedData;
@@ -672,8 +666,8 @@ async function fetchPlayerData(timePeriod = 'alltime', gameMode = 'tst', region 
     // Show loading state for non-cached requests
     showLoadingState();
 
-    // Use unified HTML scraping for all time periods
-    await scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheKey);
+    // All years use HTML scraping from rankings.trontimes.tk
+    await scrapeLeaderboard(year, gameMode, region, requestId, cacheKey);
 }
 
 // Parse last active time from HTML text like "54265 15 hours ago"
@@ -689,19 +683,18 @@ function parseLastActiveTime(changeDateText) {
     return changeDateText || 'Recently';
 }
 
-// Unified HTML leaderboard scraping for all time periods and regions
-async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheKey) {
-    console.log(`Scraping HTML leaderboard for ${timePeriod} ${region}...`);
+// Unified HTML leaderboard scraping for all years
+async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
 
-    const htmlUrl = getLeaderboardURL(timePeriod, gameMode, region);
-    console.log(`Scraping URL: ${htmlUrl}`);
+    const htmlUrl = getLeaderboardURL(year, gameMode, region);
+    // Log the decoded URL for debugging
+    const decodedUrl = decodeURIComponent(htmlUrl.replace('https://corsproxy.io/?', ''));
 
     try {
         const response = await fetch(htmlUrl);
 
         // Check if request was cancelled during fetch
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log(`Request cancelled during ${timePeriod} ${region} HTML fetch`);
             return;
         }
 
@@ -709,7 +702,6 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
 
         // Check again after HTML parsing
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log(`Request cancelled after ${timePeriod} ${region} HTML parsing`);
             return;
         }
 
@@ -721,15 +713,11 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
         const rows = doc.querySelectorAll('table tr');
         const players = [];
 
-        console.log(`Found ${rows.length} table rows in HTML`);
 
         // Log the HTML structure to understand the table format
         if (rows.length > 1) {
             const headerRow = rows[0];
             const sampleRow = rows[1];
-            console.log('Header row:', headerRow?.textContent);
-            console.log('Sample row:', sampleRow?.textContent);
-            console.log('Sample row cells:', sampleRow?.querySelectorAll('td').length);
         }
 
         rows.forEach((row, index) => {
@@ -738,18 +726,34 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
             const cells = row.querySelectorAll('td');
             if (cells.length < 3) return; // Skip invalid rows
 
-            // Extract all available data from HTML table (based on 11 columns)
+            // Extract data from HTML table - rankings.trontimes.tk has 11 columns:
+            // Columns: # | Username | Rating | Latest change | Change date | Matches W/L | Played | Avg place | Avg score | High score | K/D
             const rank = parseInt(cells[0]?.textContent?.trim()) || index;
             const name = cells[1]?.textContent?.trim();
             const elo = parseInt(cells[2]?.textContent?.trim()) || 1500;
             const latestChange = parseInt(cells[3]?.textContent?.trim()) || 0;
             const changeDateText = cells[4]?.textContent?.trim() || '';
-            // cells[5] is win/loss visual - skip
-            const matches = parseInt(cells[6]?.textContent?.trim()) || 0;
-            const avgPlace = parseFloat(cells[7]?.textContent?.trim()) || 2.5;
-            const avgScore = parseInt(cells[8]?.textContent?.trim()) || 400;
-            const highScore = parseInt(cells[9]?.textContent?.trim()) || 600;
-            const kd = parseFloat(cells[10]?.textContent?.trim()) || 1.0;
+            
+            // Detect if 11 columns (has "Played" column) or 10 columns
+            const hasPlayedColumn = cells.length >= 11;
+            
+            let matches, avgPlace, avgScore, highScore, kd;
+            
+            if (hasPlayedColumn) {
+                // 11-column format: Played is at index 6
+                matches = parseInt(cells[6]?.textContent?.trim()) || 0;
+                avgPlace = parseFloat(cells[7]?.textContent?.trim()) || 2.5;
+                avgScore = parseInt(cells[8]?.textContent?.trim()) || 400;
+                highScore = parseInt(cells[9]?.textContent?.trim()) || 600;
+                kd = parseFloat(cells[10]?.textContent?.trim()) || 1.0;
+            } else {
+                // 10-column format: no separate Played column, use Matches W/L
+                matches = parseInt(cells[5]?.textContent?.trim()) || 0;
+                avgPlace = parseFloat(cells[6]?.textContent?.trim()) || 2.5;
+                avgScore = parseInt(cells[7]?.textContent?.trim()) || 400;
+                highScore = parseInt(cells[8]?.textContent?.trim()) || 600;
+                kd = parseFloat(cells[9]?.textContent?.trim()) || 1.0;
+            }
 
             // Parse the last active time from change date text
             const lastActive = parseLastActiveTime(changeDateText);
@@ -758,14 +762,6 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
             const winrate = matches > 0 ? Math.max(0.1, Math.min(0.9, 1.0 - (avgPlace - 1) / 3)) : 0.5;
 
 
-            // Log what we're extracting for the first few players
-            if (index <= 3) {
-                console.log(`Player ${index}:`, {
-                    rank, name, elo, latestChange, matches, avgPlace, avgScore, highScore, kd,
-                    totalCells: cells.length,
-                    allCells: Array.from(cells).map(cell => cell.textContent?.trim())
-                });
-            }
 
             if (name) {
                 players.push({
@@ -791,12 +787,10 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
             }
         });
 
-        console.log(`Scraped ${players.length} players from HTML leaderboard`);
 
         if (players.length > 0) {
             // Final check before applying results
             if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-                console.log(`Request cancelled before applying ${timePeriod} ${region} results`);
                 return;
             }
 
@@ -813,10 +807,8 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
 
     } catch (error) {
         if (currentLoadingRequest.id !== requestId || currentLoadingRequest.cancelled) {
-            console.log('Request was cancelled, ignoring scraping error');
             return;
         }
-        console.error(`Error scraping HTML leaderboard:`, error);
         hideLoadingState();
         // For now, just show empty state instead of fallback
         allPlayersData = [];
@@ -826,26 +818,26 @@ async function scrapeLeaderboard(timePeriod, gameMode, region, requestId, cacheK
 
 // Supplement HTML leaderboard data with accurate stats from match history
 async function supplementWithMatchData(players, timePeriod) {
-    console.log('Supplementing HTML data with match history stats...');
 
     if (allMatchesData.length === 0) {
-        console.log('No match data available for supplementing');
         return players;
     }
 
-    // Filter matches by time period
-    const now = new Date();
-    const cutoffDate = timePeriod === 'monthly'
-        ? new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
-        : new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+    // Filter matches by year date range
+    const yearConfig = SEASONS[timePeriod];
+    let recentMatches = allMatchesData;
+    
+    if (yearConfig && yearConfig.start) {
+        const startDate = new Date(yearConfig.start);
+        const endDate = yearConfig.end ? new Date(yearConfig.end + 'T23:59:59') : new Date();
+        
+        recentMatches = allMatchesData.filter(match => {
+            const timestamp = match.date;
+            const matchDate = new Date(timestamp * 1000);
+            return matchDate >= startDate && matchDate <= endDate;
+        });
+    }
 
-    const recentMatches = allMatchesData.filter(match => {
-        const timestamp = match.date;
-        const matchDate = new Date(timestamp * 1000);
-        return matchDate >= cutoffDate;
-    });
-
-    console.log(`Using ${recentMatches.length} recent matches for supplementing stats`);
 
     // Calculate detailed stats from match history
     const playerMatchStats = {};
@@ -952,42 +944,34 @@ async function supplementWithMatchData(players, timePeriod) {
         };
     });
 
-    console.log(`Enhanced ${enhancedPlayers.length} players with match data`);
     return enhancedPlayers;
 }
 
-// Fallback function that uses match history to calculate monthly stats
+// Fallback function that uses match history to calculate season stats
 async function fetchPlayerDataFallback(timePeriod, gameMode) {
-    console.log(`Using client-side filtering for ${timePeriod}...`);
 
     try {
         // Ensure we have match data
         if (allMatchesData.length === 0) {
-            console.log('No match data available for filtering');
             renderLeaderboard();
             return;
         }
 
-        // Filter matches by time period
-        const now = new Date();
-        const cutoffDate = timePeriod === 'monthly'
-            ? new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
-            : new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        // Filter matches by year date range
+        const yearConfig = SEASONS[timePeriod];
+        let recentMatches = allMatchesData;
+        
+        if (yearConfig && yearConfig.start) {
+            const startDate = new Date(yearConfig.start);
+            const endDate = yearConfig.end ? new Date(yearConfig.end + 'T23:59:59') : new Date();
+            
+            recentMatches = allMatchesData.filter(match => {
+                const timestamp = match.date;
+                const matchDate = new Date(timestamp * 1000);
+                return matchDate >= startDate && matchDate <= endDate;
+            });
+        }
 
-        const recentMatches = allMatchesData.filter(match => {
-            // Convert Unix timestamp to milliseconds for proper date parsing
-            const timestamp = match.date;
-            const matchDate = new Date(timestamp * 1000); // Convert seconds to milliseconds
-            return matchDate >= cutoffDate;
-        });
-
-        console.log(`Found ${recentMatches.length} matches in the last ${timePeriod === 'monthly' ? '30' : '90'} days`);
-        console.log(`Cutoff date: ${cutoffDate}`);
-        console.log(`Sample match dates:`, allMatchesData.slice(0, 3).map(m => ({
-            date: m.date,
-            parsedDate: new Date(m.date * 1000),
-            isRecent: new Date(m.date * 1000) >= cutoffDate
-        })));
 
         // Calculate player stats from recent matches
         const playerStats = {};
@@ -1074,31 +1058,25 @@ async function fetchPlayerDataFallback(timePeriod, gameMode) {
         // Only show players with at least 1 match in the time period
         const activeFiltered = filteredPlayers.filter(player => player.matches > 0);
 
-        console.log(`Generated stats for ${activeFiltered.length} active players in ${timePeriod}`);
 
         allPlayersData = activeFiltered;
         renderLeaderboard();
 
     } catch (fallbackError) {
-        console.error('Fallback filtering failed:', fallbackError);
         renderLeaderboard();
     }
 }
 
 async function fetchMatchesData() {
-    console.log("Scraping real match data from HTML...");
 
     try {
-        console.log('Fetching from URL:', MATCHES_DATA_URL);
         const response = await fetch(MATCHES_DATA_URL);
-        console.log('Response status:', response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const html = await response.text();
-        console.log('HTML length:', html.length);
 
         // Parse HTML to extract match data from tables
         const parser = new DOMParser();
@@ -1108,23 +1086,18 @@ async function fetchMatchesData() {
 
         // Find all match containers
         const matchContainers = doc.querySelectorAll('div.row#match-name, div.row[id*="match"]');
-        console.log(`Found ${matchContainers.length} potential match containers`);
 
         // If no specific containers, look for tables with match data
         const tables = doc.querySelectorAll('table.table-hover, table.table');
-        console.log(`Found ${tables.length} tables to parse`);
 
         tables.forEach((table, tableIndex) => {
-            console.log(`Processing table ${tableIndex + 1}...`);
 
             const caption = table.querySelector('caption');
             const matchName = caption ? `Match ${tableIndex + 1}` : `Match ${tableIndex + 1}`;
 
             const rows = table.querySelectorAll('tbody tr');
-            console.log(`Table ${tableIndex + 1} has ${rows.length} player rows`);
 
             if (rows.length === 0) {
-                console.log(`Skipping table ${tableIndex + 1} - no data rows`);
                 return;
             }
 
@@ -1139,7 +1112,6 @@ async function fetchMatchesData() {
                     const score = parseInt(cells[2]?.textContent?.trim()) || 0;
                     const place = parseInt(cells[4]?.textContent?.trim()) || 4;
 
-                    console.log(`Row ${rowIndex}: team="${team}", player="${player}", score=${score}, place=${place}`);
 
                     if (player && team) {
                         players.push({
@@ -1153,7 +1125,6 @@ async function fetchMatchesData() {
             });
 
             if (players.length > 0) {
-                console.log(`Added match with ${players.length} players`);
                 matches.push({
                     name: matchName,
                     date: Date.now() / 1000 - (tableIndex * 3600), // Approximate timestamps
@@ -1162,7 +1133,6 @@ async function fetchMatchesData() {
             }
         });
 
-        console.log(`Successfully scraped ${matches.length} real matches from HTML`);
 
         if (matches.length > 0) {
             // Cache and use the real data
@@ -1171,13 +1141,11 @@ async function fetchMatchesData() {
             renderRecentMatches();
         } else {
             // No sample data fallback - just show empty state
-            console.log('No match data found in HTML tables');
             allMatchesData = [];
             renderRecentMatches();
         }
 
     } catch (error) {
-        console.error('Error scraping match data:', error);
         // No fallback - show empty state
         allMatchesData = [];
         renderRecentMatches();
@@ -1190,12 +1158,10 @@ function parseMatchTable(table, matchIndex) {
         const rows = table.querySelectorAll('tr');
         const players = [];
 
-        console.log(`Parsing match table ${matchIndex} with ${rows.length} rows`);
 
         // Skip header row, parse data rows
         for (let i = 1; i < rows.length; i++) {
             const cells = rows[i].querySelectorAll('td, th');
-            console.log(`Row ${i} has ${cells.length} cells:`, Array.from(cells).map(c => c.textContent?.trim()));
 
             if (cells.length >= 4) {
                 // Try different column arrangements - inspect actual HTML structure
@@ -1213,7 +1179,6 @@ function parseMatchTable(table, matchIndex) {
                     }
                 }
 
-                console.log(`Extracted: team="${team}", player="${player}", score=${score}, place=${place}`);
 
                 if (player && team && !team.toLowerCase().includes('team') === false) {
                     // Ensure team names are in correct format
@@ -1232,7 +1197,6 @@ function parseMatchTable(table, matchIndex) {
             }
         }
 
-        console.log(`Parsed ${players.length} players from match ${matchIndex}`);
 
         if (players.length > 0) {
             return {
@@ -1243,7 +1207,6 @@ function parseMatchTable(table, matchIndex) {
         }
 
     } catch (error) {
-        console.error('Error parsing match table:', error);
     }
 
     return null;
@@ -1275,7 +1238,6 @@ function filterPlayersByRegion(players, region) {
 }
 
 function renderLeaderboard() {
-    console.log(`Rendering ${allPlayersData.length} total players`);
 
     const leaderboard = document.getElementById("leaderboard");
     if (!leaderboard) return;
@@ -1299,10 +1261,7 @@ function renderLeaderboard() {
 
     // Apply filters
     let filteredPlayers = filterPlayersByTimePeriod(allPlayersData, currentTimePeriod);
-    filteredPlayers = filterPlayersByRegion(filteredPlayers, currentRegion);
 
-    console.log(`Time period filter "${currentTimePeriod}": ${filteredPlayers.length} players`);
-    console.log(`Region filter "${currentRegion}": ${filteredPlayers.length} players`);
 
     // Add rank numbers
     filteredPlayers = filteredPlayers.map((player, index) => ({
@@ -1310,7 +1269,6 @@ function renderLeaderboard() {
         rank: index + 1
     }));
 
-    console.log(`Displaying ${filteredPlayers.length} filtered players`);
 
     filteredPlayers.forEach((player, index) => {
         const entry = document.createElement("div");
@@ -1353,7 +1311,6 @@ function renderLeaderboard() {
             </div>
             <div class="percentage">${winrate}%</div>
             <div class="stat avg-place">${avgPlace}</div>
-            <div class="percentage alive-percent">${winrate}%</div>
             <div class="score">${avgScore}</div>
             <div class="score high-score">${highScore}</div>
             <div class="kd">${kd}</div>
@@ -1367,30 +1324,52 @@ function renderLeaderboard() {
     });
 }
 
-// Control buttons functionality
-document.querySelectorAll('.toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTimePeriod = btn.getAttribute('data-period');
-        console.log(`Switched to time period: ${currentTimePeriod}`);
+// Helper to show/hide region controls based on year
+// 2023 doesn't have region filtering available
+function updateRegionControlVisibility(year) {
+    const regionControl = document.getElementById('region-control');
+    if (regionControl) {
+        if (year === '2023') {
+            regionControl.style.display = 'none';
+            // Reset to combined when switching to 2023
+            currentRegion = 'combined';
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.region-btn[data-region="combined"]')?.classList.add('active');
+        } else {
+            regionControl.style.display = '';
+        }
+    }
+}
 
-        // Refetch data for the new time period
+// Season select dropdown functionality
+const seasonSelect = document.getElementById('season-select');
+if (seasonSelect) {
+    seasonSelect.addEventListener('change', () => {
+        currentTimePeriod = seasonSelect.value;
+
+        // Update region visibility based on year
+        updateRegionControlVisibility(currentTimePeriod);
+
+        // Refetch data for the new year
         fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion);
     });
-});
+    
+    // Initialize visibility on page load
+    updateRegionControlVisibility(currentTimePeriod);
+}
 
+// Region button functionality (works for all years now)
 document.querySelectorAll('.region-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentRegion = btn.getAttribute('data-region');
-        console.log(`Switched to region: ${currentRegion}`);
 
         // Refetch data for the new region
         fetchPlayerData(currentTimePeriod, getCurrentGameMode(), currentRegion);
     });
 });
+
 
 
 // Sample data for score tabs
@@ -1512,11 +1491,9 @@ function renderRecentMatches() {
     const recentMatchesContainer = document.getElementById('recent-matches');
     if (!recentMatchesContainer) return;
 
-    console.log(`Rendering recent matches: ${allMatchesData.length} matches available`);
 
     // No sample data - show real data or empty state
     if (allMatchesData.length === 0) {
-        console.log('No match data available');
         recentMatchesContainer.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No recent matches available</div>';
         return;
     }
@@ -1524,7 +1501,6 @@ function renderRecentMatches() {
     // Show recent matches from all data
     const recentMatches = allMatchesData.slice(0, 10);
 
-    console.log(`Displaying ${recentMatches.length} recent matches`);
 
     if (recentMatches.length === 0) {
         recentMatchesContainer.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No recent matches available</div>';
@@ -1532,15 +1508,8 @@ function renderRecentMatches() {
     }
 
     recentMatchesContainer.innerHTML = recentMatches.map(match => {
-        console.log('Processing match:', {
-            matchName: match.name,
-            players: match.players,
-            fullMatchData: match
-        });
-
         // Get all unique teams from players
         const teamNames = [...new Set(match.players.map(p => p.team))];
-        console.log('Found teams:', teamNames);
 
         // Enhanced team emoji mapping with more variations
         function getTeamEmoji(teamName) {
@@ -1565,7 +1534,6 @@ function renderRecentMatches() {
             const bonusScore = teamPlace === 1 ? 2000 : 0;
             const finalScore = teamScore + bonusScore;
 
-            console.log(`Team ${teamName}: ${teamPlayers.length} players, base score=${teamScore}, place=${teamPlace}, final score=${finalScore}`);
 
             return {
                 name: teamName,
@@ -1658,7 +1626,6 @@ function createSampleMatches() {
         });
     }
 
-    console.log('Created sample matches with real player names:', matches);
     return matches;
 }
 
@@ -1681,7 +1648,6 @@ function formatMatchTime(timestamp) {
             return `${diffDays} days ago`;
         }
     } catch (error) {
-        console.error('Error formatting time:', error, timestamp);
         return 'Recently';
     }
 }
@@ -2179,7 +2145,6 @@ async function loadMazeDataFromFiles() {
         mazeData[difficulty] = generateMazeDataForDifficulty(difficulty, count);
     }
 
-    console.log('Loaded maze data:', mazeData);
 }
 
 function setupDifficultyNavigation() {
@@ -2299,7 +2264,7 @@ function createMazeCard(maze) {
 
     // Auto play on hover
     card.addEventListener('mouseenter', () => {
-        video.play().catch(e => console.log('Auto-play prevented:', e));
+        video.play().catch(() => {});
     });
 
     card.addEventListener('mouseleave', () => {
@@ -2389,7 +2354,6 @@ async function validateMazeFile(videoUrl) {
         const response = await fetch(videoUrl, { method: 'HEAD' });
         return response.ok;
     } catch (error) {
-        console.warn(`Could not validate maze file: ${videoUrl}`, error);
         return false;
     }
 }

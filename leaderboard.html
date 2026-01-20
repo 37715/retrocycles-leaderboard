@@ -63,33 +63,34 @@
         </nav>
 
         <header class="header">
-                <div class="title-section">
-                    <div class="title-wrapper">
-                        <h1 class="title">leaderboard</h1>
-                    </div>
-                    <span class="gamemode-badge" id="current-mode">TST</span>
-                    <span class="year-badge">2026</span>
+            <div class="title-section">
+                <div class="title-wrapper">
+                    <h1 class="title">leaderboard</h1>
                 </div>
+                <span class="gamemode-badge" id="current-mode">TST</span>
+                    <span class="year-badge">2026</span>
+            </div>
             <p class="subtitle">competitive rankings and statistics</p>
             <div class="update-info">• updates hourly •</div>
         </header>
 
         <div class="controls">
             <div class="control-group">
-                <label class="control-label">time period</label>
-                <div class="time-toggle">
-                    <button class="toggle-btn active" data-period="alltime">All Time</button>
-                    <button class="toggle-btn" data-period="seasonal">Seasonal</button>
-                    <button class="toggle-btn" data-period="monthly">Monthly</button>
-                </div>
+                <label class="control-label">season</label>
+                <select class="season-select" id="season-select">
+                    <option value="2026" selected>Season 4 (2026)</option>
+                    <option value="2025">Season 3 (2025)</option>
+                    <option value="2024">Season 2 (2024)</option>
+                    <option value="2023">Season 1 (2023)</option>
+                </select>
             </div>
 
-            <div class="control-group">
+            <div class="control-group" id="region-control">
                 <label class="control-label">region</label>
                 <div class="region-toggle">
                     <button class="region-btn active" data-region="combined">Combined</button>
-                    <button class="region-btn" data-region="us">US Only</button>
-                    <button class="region-btn" data-region="eu">EU Only</button>
+                    <button class="region-btn" data-region="us">US</button>
+                    <button class="region-btn" data-region="eu">EU</button>
                 </div>
             </div>
 
@@ -132,7 +133,6 @@
                     <div class="matches-col">Matches</div>
                     <div class="winrate-col">Win Rate</div>
                     <div class="avg-place-col">Avg Place</div>
-                    <div class="alive-col">Alive %</div>
                     <div class="avg-score-col">Avg Score</div>
                     <div class="high-score-col">High Score</div>
                     <div class="kd-col">K/D</div>
