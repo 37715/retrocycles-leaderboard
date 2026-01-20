@@ -1838,6 +1838,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const profileEloEl = document.getElementById('profile-elo');
     const profileRankNameEl = document.getElementById('profile-rank-name');
     const profileRankIconEl = document.getElementById('profile-rank-icon');
+    const profileLastOnlineEl = document.getElementById('profile-last-online');
     const profileShareButton = document.getElementById('profile-share-btn');
     const profileCardOverlay = document.getElementById('profile-card-overlay');
     const profileCardModal = document.getElementById('profile-card-modal');
@@ -1871,6 +1872,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (Array.isArray(data) && data.length > 0 && profileEloEl && profileRankNameEl && profileRankIconEl) {
                     const sorted = [...data].sort((a, b) => new Date(b.name || b.date) - new Date(a.name || a.date));
                     const latestMatch = sorted[0];
+                    if (profileLastOnlineEl) {
+                        const latestTime = latestMatch?.name || latestMatch?.date;
+                        profileLastOnlineEl.textContent = latestTime
+                            ? `last online ${formatMatchTimestamp(latestTime)}`
+                            : 'last online —';
+                    }
                     const latestEntry = latestMatch?.players?.find((p) => p.player === username);
                     const latestElo = latestEntry?.exitRating ?? latestEntry?.entryRating ?? null;
                     if (latestElo !== null && latestElo !== undefined) {
