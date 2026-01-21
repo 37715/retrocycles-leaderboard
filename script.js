@@ -313,6 +313,27 @@ function generateRegionPieChart(entries, total) {
     const radius = 85;
     const innerRadius = 50; // Donut style
     
+    // Special case: only one region (100%) - draw full donut
+    if (entries.length === 1) {
+        const [name, count] = entries[0];
+        const color = regionColors[name.toLowerCase()] || regionColors['unknown'];
+        return `
+            <div class="region-pie-container">
+                <svg class="region-pie-chart" viewBox="0 0 ${size} ${size}">
+                    <circle cx="${center}" cy="${center}" r="${radius}" fill="${color}" stroke="var(--bg-secondary)" stroke-width="2"/>
+                    <circle cx="${center}" cy="${center}" r="${innerRadius}" fill="var(--bg-secondary)"/>
+                </svg>
+                <div class="region-legend">
+                    <div class="region-legend-item">
+                        <span class="region-legend-color" style="background: ${color}"></span>
+                        <span class="region-legend-label">${name}</span>
+                        <span class="region-legend-value">100%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
     let currentAngle = -90; // Start from top
     const slices = [];
     
@@ -374,9 +395,9 @@ function generateEloChart(data) {
         return '<div class="elo-chart-empty">not enough data for chart</div>';
     }
     
-    const width = 700;
-    const height = 280;
-    const padding = { top: 25, right: 25, bottom: 35, left: 55 };
+    const width = 580;
+    const height = 220;
+    const padding = { top: 20, right: 50, bottom: 35, left: 50 };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
     
@@ -449,8 +470,8 @@ function generateEloChart(data) {
                 `).join('')}
                 
                 <!-- X-axis date labels -->
-                ${xLabels.map(label => `
-                    <text x="${xScale(label.index).toFixed(1)}" y="${height - 8}" fill="var(--text-muted)" font-size="9" text-anchor="middle">${label.date}</text>
+                ${xLabels.map((label, i) => `
+                    <text x="${xScale(label.index).toFixed(1)}" y="${height - 8}" fill="var(--text-muted)" font-size="9" text-anchor="${i === 0 ? 'start' : 'end'}">${label.date}</text>
                 `).join('')}
             </svg>
             <div class="elo-chart-legend">
@@ -951,18 +972,64 @@ async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
             // Detect if 11 columns (has "Played" column) or 10 columns
             const hasPlayedColumn = cells.length >= 11;
             
-            let matches, avgPlace, avgScore, highScore, kd;
+            let matches = 0, avgPlace, avgScore, highScore, kd, wins = 0, losses = 0;
+            let winrate = 0;
+            // Team position percentages (1st, 2nd, 3rd, 4th)
+            let pos1Rate = 0, pos2Rate = 0, pos3Rate = 0, pos4Rate = 0;
+            
+            // The Matches W/L column (index 5) has progress bars
+            // Structure: titles like "2nd: 8 out of 47" contain total matches and position counts
+            // Progress bars show: 1st (green), 2nd (yellow), 3rd (orange), 4th (red background)
+            const matchesCell = cells[5];
+            
+            // Get all progress bars - they represent team positions 1-4
+            const progressBars = matchesCell?.querySelectorAll('.progress-bar') || [];
+            
+            // First bar = 1st place (wins), get percentage from aria-valuenow
+            if (progressBars[0]) {
+                pos1Rate = parseFloat(progressBars[0].getAttribute('aria-valuenow')) || 0;
+            }
+            
+            // 2nd and 3rd bars have titles like "2nd: 8 out of 47"
+            for (const bar of progressBars) {
+                const title = bar.getAttribute('title') || '';
+                const ariaValue = parseFloat(bar.getAttribute('aria-valuenow')) || 0;
+                
+                // Get total matches from "out of X"
+                const outOfMatch = title.match(/out of (\d+)/i);
+                if (outOfMatch && matches === 0) {
+                    matches = parseInt(outOfMatch[1]) || 0;
+                }
+                
+                // Parse position from title
+                if (title.match(/^2nd/i)) {
+                    pos2Rate = ariaValue;
+                } else if (title.match(/^3rd/i)) {
+                    pos3Rate = ariaValue;
+                }
+            }
+            
+            // 4th place is the remainder (shown as red background)
+            pos4Rate = Math.max(0, 100 - pos1Rate - pos2Rate - pos3Rate);
+            
+            // Win rate is 1st place percentage
+            winrate = pos1Rate / 100;
+            
+            // Calculate actual wins from percentage
+            if (matches > 0 && winrate > 0) {
+                wins = Math.round(matches * winrate);
+                losses = matches - wins;
+            }
             
             if (hasPlayedColumn) {
                 // 11-column format: Played is at index 6
-                matches = parseInt(cells[6]?.textContent?.trim()) || 0;
+                if (matches === 0) matches = parseInt(cells[6]?.textContent?.trim()) || 0;
                 avgPlace = parseFloat(cells[7]?.textContent?.trim()) || 2.5;
                 avgScore = parseInt(cells[8]?.textContent?.trim()) || 400;
                 highScore = parseInt(cells[9]?.textContent?.trim()) || 600;
                 kd = parseFloat(cells[10]?.textContent?.trim()) || 1.0;
             } else {
-                // 10-column format: no separate Played column, use Matches W/L
-                matches = parseInt(cells[5]?.textContent?.trim()) || 0;
+                // 10-column format: no separate Played column
                 avgPlace = parseFloat(cells[6]?.textContent?.trim()) || 2.5;
                 avgScore = parseInt(cells[7]?.textContent?.trim()) || 400;
                 highScore = parseInt(cells[8]?.textContent?.trim()) || 600;
@@ -971,9 +1038,6 @@ async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
 
             // Parse the last active time from change date text
             const lastActive = parseLastActiveTime(changeDateText);
-
-            // Calculate win rate from visual data or estimate
-            const winrate = matches > 0 ? Math.max(0.1, Math.min(0.9, 1.0 - (avgPlace - 1) / 3)) : 0.5;
 
 
 
@@ -995,7 +1059,12 @@ async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
                     averageScore: avgScore,
                     highScore: highScore,
                     bestScore: highScore,
-                    lastActive: lastActive, // Real timestamp from HTML
+                    lastActive: lastActive,
+                    // Team position percentages (actual data from HTML)
+                    pos1Rate: pos1Rate,
+                    pos2Rate: pos2Rate,
+                    pos3Rate: pos3Rate,
+                    pos4Rate: pos4Rate,
                     region: ['US', 'EU', 'Combined'][index % 3] // Simulated
                 });
             }
@@ -1492,19 +1561,29 @@ function renderLeaderboard() {
         const rank = getRank(player.elo || 1500);
         
         // Safe number conversions using actual data structure
-        const winrate = Math.round((parseFloat(player.winrate || player.winRate) || 0.5) * 100);
+        const winrate = Math.round((parseFloat(player.winrate ?? player.winRate ?? 0)) * 100);
         const avgPlace = parseFloat(player.avgPlace || player.averagePlace || 1.5).toFixed(1);
         const kd = parseFloat(player.kd || player.killDeathRatio || 1.0).toFixed(2);
         const avgScore = parseInt(player.avgScore || player.averageScore || 400);
         const highScore = parseInt(player.highScore || player.bestScore || 600);
         
-        // Calculate position percentages based on player stats
-        // Better players (lower avg place) get more green (1st place)
-        const avgPlaceNum = parseFloat(player.avgPlace || player.averagePlace || 1.8);
-        const firstRate = Math.max(0, Math.min(40, 45 - (avgPlaceNum - 1) * 15));
-        const secondRate = Math.max(15, Math.min(35, 30 - (avgPlaceNum - 1.5) * 10));
-        const thirdRate = Math.max(15, Math.min(35, 25 + (avgPlaceNum - 1.5) * 5));
-        const fourthRate = Math.max(10, 100 - firstRate - secondRate - thirdRate);
+        // Team position percentages (1st green, 2nd yellow, 3rd orange, 4th red)
+        // Use actual data from HTML, or estimate from avg place as fallback
+        let firstRate, secondRate, thirdRate, fourthRate;
+        if (player.pos1Rate !== undefined && player.pos1Rate > 0) {
+            // Real data from HTML
+            firstRate = player.pos1Rate;
+            secondRate = player.pos2Rate || 0;
+            thirdRate = player.pos3Rate || 0;
+            fourthRate = player.pos4Rate || 0;
+        } else {
+            // Fallback: estimate from average place
+            const avgPlaceNum = parseFloat(player.avgPlace || player.averagePlace || 2.5);
+            firstRate = Math.max(0, Math.min(50, 60 - (avgPlaceNum - 1) * 20));
+            secondRate = Math.max(10, Math.min(35, 30 - (avgPlaceNum - 2) * 5));
+            thirdRate = Math.max(10, Math.min(35, 25 + (avgPlaceNum - 2) * 5));
+            fourthRate = Math.max(0, 100 - firstRate - secondRate - thirdRate);
+        }
         
         entry.classList.add(`rank-tint-${rank.class}`);
         entry.innerHTML = `
@@ -1519,7 +1598,7 @@ function renderLeaderboard() {
             <div class="last-active">${player.lastActive || 'Recently'}</div>
             <div class="matches">
                 <div class="winrate-bar">
-                    <div class="winrate-fill" style="width: 100%; background: linear-gradient(90deg, #10b981 ${firstRate}%, #f59e0b ${firstRate + secondRate}%, #fb923c ${firstRate + secondRate + thirdRate}%, #ef4444 100%);"></div>
+                    <div class="winrate-fill" style="width: 100%; background: linear-gradient(90deg, #10b981 0%, #10b981 ${Math.max(0, firstRate - 1)}%, #fcd34d ${firstRate + 1}%, #fcd34d ${Math.max(0, firstRate + secondRate - 1)}%, #f97316 ${firstRate + secondRate + 1}%, #f97316 ${Math.max(0, firstRate + secondRate + thirdRate - 1)}%, #ef4444 ${firstRate + secondRate + thirdRate + 1}%, #ef4444 100%);"></div>
                 </div>
                 <span class="matches-count">${player.numPlay || player.matches}</span>
             </div>

@@ -920,7 +920,7 @@ body {
 .elo-chart {
     width: 100%;
     height: auto;
-    min-height: 240px;
+    min-height: 180px;
 }
 
 .elo-chart-empty {
@@ -1805,13 +1805,11 @@ body::-webkit-scrollbar {
 .simple-mode .change-col,
 .simple-mode .avg-place-col,
 .simple-mode .high-score-col,
-.simple-mode .activity-col,
 .simple-mode .avg-score-col,
 .simple-mode .winrate-col,
 .simple-mode .change,
 .simple-mode .avg-place,
 .simple-mode .high-score,
-.simple-mode .last-active,
 .simple-mode .percentage,
 .simple-mode .stat,
 .simple-mode .score {
@@ -2302,9 +2300,9 @@ a.tier:hover {
 }
 
 .winrate-bar {
-    width: 40px;
-    height: 8px;
-    border-radius: 0;
+    width: 60px;
+    height: 12px;
+    border-radius: 2px;
     background: var(--bg-tertiary);
     position: relative;
     overflow: hidden;
@@ -2312,7 +2310,7 @@ a.tier:hover {
 
 .winrate-fill {
     height: 100%;
-    border-radius: 0;
+    border-radius: 2px;
     transition: width 0.3s ease;
 }
 
