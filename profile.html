@@ -44,7 +44,15 @@
         <header class="profile-hero">
             <div class="profile-hero-inner">
                 <div class="profile-hero-left">
-                    <div class="profile-hero-meta">player profile</div>
+                    <div class="profile-hero-meta">
+                        <span>player profile</span>
+                        <select class="profile-season-select" id="profile-season-select">
+                            <option value="2026" selected>Season 4 (2026)</option>
+                            <option value="2025">Season 3 (2025)</option>
+                            <option value="2024">Season 2 (2024)</option>
+                            <option value="2023">Season 1 (2023)</option>
+                        </select>
+                    </div>
                     <div class="profile-last-online">
                         <span class="profile-status-dot"></span>
                         <span id="profile-last-online">last online —</span>
@@ -53,6 +61,7 @@
                     <button class="profile-share-btn profile-share-btn-hero" type="button" id="profile-share-btn">share card</button>
                 </div>
                 <div class="profile-hero-right">
+                    <div class="profile-leaderboard-rank" id="profile-leaderboard-rank"></div>
                     <div class="profile-hero-rank">
                         <img id="profile-rank-icon" class="profile-rank-icon" src="images/ranks/bronze.svg" alt="rank icon">
                         <div class="profile-rank-info">
@@ -83,6 +92,10 @@
                     <span id="profile-share-rank-name">bronze</span>
                 </div>
                 <div class="profile-share-stats">
+                    <div class="profile-share-stat">
+                        <span>rank</span>
+                        <strong id="profile-share-leaderboard-rank">—</strong>
+                    </div>
                     <div class="profile-share-stat">
                         <span>elo</span>
                         <strong id="profile-share-elo">—</strong>

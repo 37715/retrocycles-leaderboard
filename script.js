@@ -2,10 +2,24 @@
 const MATCHES_HTML_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
 const MATCHES_DATA_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
 
-// Player history endpoint
-const PLAYER_HISTORY_BASE_URL = 'https://rankings.trontimes.tk/api.php?id=tst&type=history&mp=';
-const getPlayerHistoryUrl = (username) =>
-    `https://corsproxy.io/?${encodeURIComponent(`${PLAYER_HISTORY_BASE_URL}${username}`)}`;
+// Player history endpoint with season support
+// For 2026: id=tst (no date filter needed)
+// For 2023-2025: id=tst24 with daterange=1 and date params
+function getPlayerHistoryUrl(username, season = '2026') {
+    let baseUrl;
+    
+    if (season === '2026') {
+        // Current season - use tst
+        baseUrl = `https://rankings.trontimes.tk/api.php?id=tst&type=history&mp=${encodeURIComponent(username)}`;
+    } else {
+        // Historical seasons - use tst24 with date filtering
+        const startDate = `${season}-01-01`;
+        const endDate = `${season}-12-31`;
+        baseUrl = `https://rankings.trontimes.tk/api.php?id=tst24&type=history&daterange=1&datel=${startDate}&date=${endDate}&mp=${encodeURIComponent(username)}`;
+    }
+    
+    return `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`;
+}
 
 function getPlayerSummary(matches, username) {
     let totalKills = 0;
@@ -39,6 +53,38 @@ const SEASONS = {
     '2024': { start: '2024-01-01', end: '2024-12-31', apiId: 'tst24', label: 'Season 2 (2024)' },
     '2023': { start: '2023-01-01', end: '2023-12-31', apiId: 'tst24', label: 'Season 1 (2023)' }
 };
+
+// Function to fetch player's leaderboard rank for a given season
+async function getPlayerLeaderboardRank(username, season) {
+    try {
+        const url = getLeaderboardURL(season, 'tst', 'combined');
+        if (!url) return null;
+        
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const rows = doc.querySelectorAll('table tr');
+        
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].querySelectorAll('td');
+            if (cells.length >= 2) {
+                const playerName = cells[1]?.textContent?.trim();
+                if (playerName && playerName.toLowerCase() === username.toLowerCase()) {
+                    const rank = parseInt(cells[0]?.textContent?.trim()) || (i);
+                    return rank;
+                }
+            }
+        }
+        
+        return null; // Player not found on leaderboard
+    } catch (error) {
+        return null;
+    }
+}
 
 // Unified leaderboard URL builder - uses rankings.trontimes.tk for everything
 const getLeaderboardURL = (year, gameMode, region) => {
@@ -246,6 +292,176 @@ function computeIndividualPlace(players, playerName) {
 
 let profileSortConfig = { key: 'date', dir: 'desc' };
 
+// Region colors
+const regionColors = {
+    'us': '#3b82f6',
+    'eu': '#10b981',
+    'unknown': '#6b7280',
+    'ny': '#8b5cf6',
+    'dc': '#f59e0b',
+    'la': '#ef4444'
+};
+
+// Generate SVG pie chart for regions
+function generateRegionPieChart(entries, total) {
+    if (!entries || entries.length === 0) {
+        return '<div class="region-chart-empty">no region data</div>';
+    }
+    
+    const size = 200;
+    const center = size / 2;
+    const radius = 85;
+    const innerRadius = 50; // Donut style
+    
+    let currentAngle = -90; // Start from top
+    const slices = [];
+    
+    entries.forEach(([name, count]) => {
+        const percent = count / total;
+        const angle = percent * 360;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + angle;
+        
+        // Convert to radians
+        const startRad = (startAngle * Math.PI) / 180;
+        const endRad = (endAngle * Math.PI) / 180;
+        
+        // Calculate arc points
+        const x1 = center + radius * Math.cos(startRad);
+        const y1 = center + radius * Math.sin(startRad);
+        const x2 = center + radius * Math.cos(endRad);
+        const y2 = center + radius * Math.sin(endRad);
+        
+        // Inner arc points (for donut)
+        const ix1 = center + innerRadius * Math.cos(startRad);
+        const iy1 = center + innerRadius * Math.sin(startRad);
+        const ix2 = center + innerRadius * Math.cos(endRad);
+        const iy2 = center + innerRadius * Math.sin(endRad);
+        
+        const largeArc = angle > 180 ? 1 : 0;
+        const color = regionColors[name.toLowerCase()] || regionColors['unknown'];
+        
+        // Create donut slice path
+        const path = `M ${ix1} ${iy1} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+        
+        slices.push({ name, count, percent: Math.round(percent * 100), color, path });
+        currentAngle = endAngle;
+    });
+    
+    return `
+        <div class="region-pie-container">
+            <svg class="region-pie-chart" viewBox="0 0 ${size} ${size}">
+                ${slices.map(s => `
+                    <path d="${s.path}" fill="${s.color}" stroke="var(--bg-secondary)" stroke-width="2"/>
+                `).join('')}
+            </svg>
+            <div class="region-pie-legend">
+                ${slices.map(s => `
+                    <div class="region-pie-item">
+                        <span class="region-pie-color" style="background: ${s.color}"></span>
+                        <span class="region-pie-name">${s.name.toUpperCase()}</span>
+                        <span class="region-pie-percent">${s.percent}%</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Generate SVG line chart for ELO progression
+function generateEloChart(data) {
+    if (!data || data.length < 2) {
+        return '<div class="elo-chart-empty">not enough data for chart</div>';
+    }
+    
+    const width = 700;
+    const height = 280;
+    const padding = { top: 25, right: 25, bottom: 35, left: 55 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+    
+    // Get min/max ELO with some padding
+    const elos = data.map(d => d.elo);
+    const minElo = Math.min(...elos);
+    const maxElo = Math.max(...elos);
+    const eloRange = maxElo - minElo || 100;
+    const eloPadding = eloRange * 0.1;
+    const yMin = Math.floor((minElo - eloPadding) / 50) * 50;
+    const yMax = Math.ceil((maxElo + eloPadding) / 50) * 50;
+    
+    // Scale functions
+    const xScale = (i) => padding.left + (i / (data.length - 1)) * chartWidth;
+    const yScale = (elo) => padding.top + chartHeight - ((elo - yMin) / (yMax - yMin)) * chartHeight;
+    
+    // Generate path
+    const pathPoints = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i).toFixed(1)} ${yScale(d.elo).toFixed(1)}`).join(' ');
+    
+    // Generate area fill (gradient under line)
+    const areaPath = `M ${xScale(0).toFixed(1)} ${yScale(data[0].elo).toFixed(1)} ` +
+        data.slice(1).map((d, i) => `L ${xScale(i + 1).toFixed(1)} ${yScale(d.elo).toFixed(1)}`).join(' ') +
+        ` L ${xScale(data.length - 1).toFixed(1)} ${padding.top + chartHeight} L ${xScale(0).toFixed(1)} ${padding.top + chartHeight} Z`;
+    
+    // Y-axis labels (every 50 or 100 ELO depending on range)
+    const yStep = yMax - yMin > 200 ? 100 : 50;
+    const yLabels = [];
+    for (let elo = yMin; elo <= yMax; elo += yStep) {
+        yLabels.push(elo);
+    }
+    
+    // Calculate trend (up or down)
+    const startElo = data[0].elo;
+    const endElo = data[data.length - 1].elo;
+    const trend = endElo >= startElo ? 'up' : 'down';
+    const trendColor = trend === 'up' ? '#10b981' : '#ef4444';
+    
+    // Generate x-axis date labels (just first and last)
+    const xLabels = [
+        { index: 0, date: data[0].date },
+        { index: data.length - 1, date: data[data.length - 1].date }
+    ];
+    
+    return `
+        <div class="elo-chart-container">
+            <div class="elo-chart-title">elo progression</div>
+            <svg class="elo-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="eloGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:${trendColor};stop-opacity:0.3"/>
+                        <stop offset="100%" style="stop-color:${trendColor};stop-opacity:0.02"/>
+                    </linearGradient>
+                </defs>
+                
+                <!-- Grid lines -->
+                ${yLabels.map(elo => `
+                    <line x1="${padding.left}" y1="${yScale(elo).toFixed(1)}" x2="${width - padding.right}" y2="${yScale(elo).toFixed(1)}" stroke="var(--border-color)" stroke-opacity="0.5" stroke-dasharray="4,4"/>
+                    <text x="${padding.left - 8}" y="${yScale(elo).toFixed(1)}" fill="var(--text-muted)" font-size="10" text-anchor="end" dominant-baseline="middle">${elo}</text>
+                `).join('')}
+                
+                <!-- Area fill -->
+                <path d="${areaPath}" fill="url(#eloGradient)"/>
+                
+                <!-- Line -->
+                <path d="${pathPoints}" fill="none" stroke="${trendColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                
+                <!-- Data points -->
+                ${data.map((d, i) => `
+                    <circle cx="${xScale(i).toFixed(1)}" cy="${yScale(d.elo).toFixed(1)}" r="4" fill="var(--bg-primary)" stroke="${trendColor}" stroke-width="2"/>
+                `).join('')}
+                
+                <!-- X-axis date labels -->
+                ${xLabels.map(label => `
+                    <text x="${xScale(label.index).toFixed(1)}" y="${height - 8}" fill="var(--text-muted)" font-size="9" text-anchor="middle">${label.date}</text>
+                `).join('')}
+            </svg>
+            <div class="elo-chart-legend">
+                <span class="elo-chart-stat">start: <strong>${startElo}</strong></span>
+                <span class="elo-chart-stat">end: <strong>${endElo}</strong></span>
+                <span class="elo-chart-stat elo-chart-${trend}">change: <strong>${endElo >= startElo ? '+' : ''}${endElo - startElo}</strong></span>
+            </div>
+        </div>
+    `;
+}
+
 function renderPlayerProfile(username, matches) {
     if (!Array.isArray(matches) || matches.length === 0) {
         return `<div class="profile-loading">no matches found for this player</div>`;
@@ -372,6 +588,14 @@ function renderPlayerProfile(username, matches) {
 
     const sortDir = (key) => (profileSortConfig.key === key ? profileSortConfig.dir : undefined);
 
+    // Generate ELO chart data (sorted chronologically)
+    const chartData = rows
+        .filter(r => r.exitRating !== null && r.exitRating !== undefined)
+        .sort((a, b) => a.dateValue - b.dateValue)
+        .map(r => ({ date: r.date, elo: r.exitRating }));
+    
+    const eloChart = generateEloChart(chartData);
+
     return `
         <div class="profile-summary">
             <div class="profile-card">
@@ -430,42 +654,13 @@ function renderPlayerProfile(username, matches) {
                 </div>
                 ${teammateEntries.length > 10 ? `<button class="profile-breakdown-toggle" type="button">show more</button>` : ''}
             </div>
-            <div class="profile-breakdown" data-collapsed="true">
+            <div class="profile-region-summary">
                 <h4>regions</h4>
-                <div class="profile-breakdown-list">
-                ${regionTop.map(([name, count]) => {
-                    const percent = Math.round((count / regionTotal) * 100);
-                    return `
-                        <div class="profile-breakdown-item">
-                            <span>${name}</span>
-                            <div class="profile-breakdown-bar">
-                                <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
-                            </div>
-                            <span>${percent}%</span>
-                        </div>
-                    `;
-                }).join('')}
-                ${regionExtra.length ? `
-                    <div class="profile-breakdown-extra">
-                        ${regionExtra.map(([name, count]) => {
-                            const percent = Math.round((count / regionTotal) * 100);
-                            return `
-                                <div class="profile-breakdown-item">
-                                    <span>${name}</span>
-                                    <div class="profile-breakdown-bar">
-                                        <div class="profile-breakdown-fill" style="width: ${percent}%"></div>
-                                    </div>
-                                    <span>${percent}%</span>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                ` : ''}
-                </div>
-                ${regionEntries.length > 10 ? `<button class="profile-breakdown-toggle" type="button">show more</button>` : ''}
+                ${generateRegionPieChart(regionEntries, regionTotal)}
             </div>
         </div>
-        <div class="profile-table">
+        ${eloChart}
+        <div class="profile-table" data-collapsed="true">
             <div class="profile-table-title">match history</div>
             <div class="profile-table-header">
                 <button data-sort="date" data-sort-dir="${sortDir('date') || ''}">match</button>
@@ -479,7 +674,7 @@ function renderPlayerProfile(username, matches) {
                 <button data-sort="score" data-sort-dir="${sortDir('score') || ''}">score</button>
                 <button data-sort="kd" data-sort-dir="${sortDir('kd') || ''}">k/d</button>
             </div>
-            ${sortedRows.map((row) => `
+            ${sortedRows.slice(0, 10).map((row) => `
                 <div class="profile-table-row">
                     <span class="profile-highlight">${row.date}</span>
                     <span>${row.teammate}</span>
@@ -493,6 +688,25 @@ function renderPlayerProfile(username, matches) {
                     <span>${row.kd}</span>
                 </div>
             `).join('')}
+            ${sortedRows.length > 10 ? `
+                <div class="profile-table-extra">
+                    ${sortedRows.slice(10).map((row) => `
+                        <div class="profile-table-row">
+                            <span class="profile-highlight">${row.date}</span>
+                            <span>${row.teammate}</span>
+                            <span>${row.exitRating ?? '—'}</span>
+                            <span>${row.change}</span>
+                            <span>${row.teamPlace}</span>
+                            <span>${row.indvPlace}</span>
+                            <span>${row.played}</span>
+                            <span>${row.alive}</span>
+                            <span class="profile-highlight">${row.score}</span>
+                            <span>${row.kd}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="profile-table-toggle" type="button">show all ${sortedRows.length} matches</button>
+            ` : ''}
         </div>
     `;
 }
@@ -1816,56 +2030,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     const profileShareElo = document.getElementById('profile-share-elo');
     const profileShareKd = document.getElementById('profile-share-kd');
     const profileCardShare = document.getElementById('profile-card-share');
+    // Profile season select
+    const profileSeasonSelect = document.getElementById('profile-season-select');
+    const profileLeaderboardRankEl = document.getElementById('profile-leaderboard-rank');
+    const profileShareLeaderboardRank = document.getElementById('profile-share-leaderboard-rank');
+    let currentProfileSeason = '2026';
+    
+    // Function to load player profile for a given season
+    async function loadPlayerProfile(username, season) {
+        if (!username || !profileBody) return;
+        
+        profileBody.innerHTML = `<div class="profile-loading">loading ${season} profile...</div>`;
+        
+        // Clear leaderboard rank while loading
+        if (profileLeaderboardRankEl) profileLeaderboardRankEl.textContent = '';
+        if (profileShareLeaderboardRank) profileShareLeaderboardRank.textContent = '—';
+        
+        try {
+            // Fetch profile data and leaderboard rank in parallel
+            const [response, leaderboardRank] = await Promise.all([
+                fetch(getPlayerHistoryUrl(username, season)),
+                getPlayerLeaderboardRank(username, season)
+            ]);
+            
+            if (!response.ok) {
+                throw new Error('failed to load profile');
+            }
+            const data = await response.json();
+            window.profileMatches = data;
+            
+            // Display leaderboard rank
+            if (leaderboardRank !== null) {
+                if (profileLeaderboardRankEl) profileLeaderboardRankEl.textContent = `#${leaderboardRank}`;
+                if (profileShareLeaderboardRank) profileShareLeaderboardRank.textContent = `#${leaderboardRank}`;
+            } else {
+                if (profileLeaderboardRankEl) profileLeaderboardRankEl.textContent = '';
+                if (profileShareLeaderboardRank) profileShareLeaderboardRank.textContent = '—';
+            }
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                profileBody.innerHTML = `<div class="profile-loading">no matches found for ${season}</div>`;
+                // Clear stats for empty season
+                if (profileEloEl) profileEloEl.textContent = '—';
+                if (profileRankNameEl) profileRankNameEl.textContent = 'no data';
+                return;
+            }
+            
+            profileBody.innerHTML = renderPlayerProfile(username, data);
+            const summary = getPlayerSummary(data, username);
+            
+            if (profileEloEl && profileRankNameEl && profileRankIconEl) {
+                const sorted = [...data].sort((a, b) => new Date(b.name || b.date) - new Date(a.name || a.date));
+                const latestMatch = sorted[0];
+                
+                if (profileLastOnlineEl) {
+                    const latestTime = latestMatch?.name || latestMatch?.date;
+                    profileLastOnlineEl.textContent = latestTime
+                        ? `last online ${formatMatchTimestamp(latestTime)}`
+                        : 'last online —';
+                }
+                
+                const latestEntry = latestMatch?.players?.find((p) => p.player === username);
+                const latestElo = latestEntry?.exitRating ?? latestEntry?.entryRating ?? null;
+                
+                if (latestElo !== null && latestElo !== undefined) {
+                    profileEloEl.textContent = Math.round(latestElo);
+                    const rankInfo = getRank(latestElo);
+                    profileRankNameEl.textContent = rankInfo.name;
+                    profileRankIconEl.src = rankInfo.icon;
+                    profileRankIconEl.alt = rankInfo.name;
+                    document.body.dataset.rank = rankInfo.name;
+                    
+                    if (profileShareCard && profileShareName && profileShareIcon && profileShareRankName && profileShareElo && profileShareKd) {
+                        profileShareCard.dataset.rank = rankInfo.name;
+                        profileShareName.textContent = username.toLowerCase();
+                        profileShareIcon.src = rankInfo.icon;
+                        profileShareIcon.alt = rankInfo.name;
+                        profileShareRankName.textContent = rankInfo.name;
+                        profileShareElo.textContent = Math.round(latestElo);
+                        profileShareKd.textContent = summary.averageKd;
+                    }
+                }
+            }
+        } catch (error) {
+            profileBody.innerHTML = `<div class="profile-loading">failed to load player profile</div>`;
+        }
+    }
+    
     if (profileNameEl && profileBody) {
         const params = new URLSearchParams(window.location.search);
         const username = params.get('user') || params.get('username');
+        
         if (!username) {
             profileNameEl.textContent = 'unknown player';
             profileBody.innerHTML = `<div class="profile-loading">no player selected</div>`;
         } else {
             profileNameEl.textContent = username;
             profileBody.dataset.username = username;
-            profileBody.innerHTML = `<div class="profile-loading">loading profile...</div>`;
-            try {
-                const response = await fetch(getPlayerHistoryUrl(username));
-                if (!response.ok) {
-                    throw new Error('failed to load profile');
-                }
-                const data = await response.json();
-                window.profileMatches = data;
-                profileBody.innerHTML = renderPlayerProfile(username, data);
-                const summary = getPlayerSummary(data, username);
-                if (Array.isArray(data) && data.length > 0 && profileEloEl && profileRankNameEl && profileRankIconEl) {
-                    const sorted = [...data].sort((a, b) => new Date(b.name || b.date) - new Date(a.name || a.date));
-                    const latestMatch = sorted[0];
-                    if (profileLastOnlineEl) {
-                        const latestTime = latestMatch?.name || latestMatch?.date;
-                        profileLastOnlineEl.textContent = latestTime
-                            ? `last online ${formatMatchTimestamp(latestTime)}`
-                            : 'last online —';
-                    }
-                    const latestEntry = latestMatch?.players?.find((p) => p.player === username);
-                    const latestElo = latestEntry?.exitRating ?? latestEntry?.entryRating ?? null;
-                    if (latestElo !== null && latestElo !== undefined) {
-                        profileEloEl.textContent = Math.round(latestElo);
-                        const rankInfo = getRank(latestElo);
-                        profileRankNameEl.textContent = rankInfo.name;
-                        profileRankIconEl.src = rankInfo.icon;
-                        profileRankIconEl.alt = rankInfo.name;
-                        document.body.dataset.rank = rankInfo.name;
-                        if (profileShareCard && profileShareName && profileShareIcon && profileShareRankName && profileShareElo && profileShareKd) {
-                            profileShareCard.dataset.rank = rankInfo.name;
-                            profileShareName.textContent = username.toLowerCase();
-                            profileShareIcon.src = rankInfo.icon;
-                            profileShareIcon.alt = rankInfo.name;
-                            profileShareRankName.textContent = rankInfo.name;
-                            profileShareElo.textContent = Math.round(latestElo);
-                            profileShareKd.textContent = summary.averageKd;
-                        }
-                    }
-                }
-            } catch (error) {
-                profileBody.innerHTML = `<div class="profile-loading">failed to load player profile</div>`;
+            
+            // Load initial profile
+            loadPlayerProfile(username, currentProfileSeason);
+            
+            // Season dropdown change handler
+            if (profileSeasonSelect) {
+                profileSeasonSelect.addEventListener('change', () => {
+                    currentProfileSeason = profileSeasonSelect.value;
+                    loadPlayerProfile(username, currentProfileSeason);
+                });
             }
         }
     }
@@ -1950,12 +2221,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
-        if (!target.classList.contains('profile-breakdown-toggle')) return;
-        const card = target.closest('.profile-breakdown');
-        if (!card) return;
-        const isCollapsed = card.getAttribute('data-collapsed') === 'true';
-        card.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
-        target.textContent = isCollapsed ? 'show less' : 'show more';
+        
+        // Handle profile breakdown toggle
+        if (target.classList.contains('profile-breakdown-toggle')) {
+            const card = target.closest('.profile-breakdown');
+            if (!card) return;
+            const isCollapsed = card.getAttribute('data-collapsed') === 'true';
+            card.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
+            target.textContent = isCollapsed ? 'show less' : 'show more';
+            return;
+        }
+        
+        // Handle match history table toggle
+        if (target.classList.contains('profile-table-toggle')) {
+            const table = target.closest('.profile-table');
+            if (!table) return;
+            table.setAttribute('data-collapsed', 'false');
+            return;
+        }
     });
 
     if (!globalProgress) {
