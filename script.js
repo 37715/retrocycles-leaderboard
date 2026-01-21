@@ -26,6 +26,7 @@ function getPlayerSummary(matches, username) {
     let totalDeaths = 0;
     let totalScore = 0;
     let matchCount = 0;
+    let wins = 0;
 
     matches.forEach((match) => {
         const players = match.players || [];
@@ -37,11 +38,18 @@ function getPlayerSummary(matches, username) {
         totalDeaths += deaths;
         totalScore += entry.score ?? 0;
         matchCount += 1;
+        // Team win = 1st place
+        if (entry.place === 1) wins += 1;
     });
+
+    const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
 
     return {
         averageKd: totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : `${totalKills}.00`,
-        averageScore: matchCount ? Math.round(totalScore / matchCount) : 0
+        averageScore: matchCount ? Math.round(totalScore / matchCount) : 0,
+        winRate: winRate,
+        wins: wins,
+        matches: matchCount
     };
 }
 
@@ -2107,6 +2115,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const profileShareIcon = document.getElementById('profile-share-icon');
     const profileShareRankName = document.getElementById('profile-share-rank-name');
     const profileShareElo = document.getElementById('profile-share-elo');
+    const profileShareWinrate = document.getElementById('profile-share-winrate');
     const profileShareKd = document.getElementById('profile-share-kd');
     const profileCardShare = document.getElementById('profile-card-share');
     // Profile season select
@@ -2187,6 +2196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         profileShareIcon.alt = rankInfo.name;
                         profileShareRankName.textContent = rankInfo.name;
                         profileShareElo.textContent = Math.round(latestElo);
+                        if (profileShareWinrate) profileShareWinrate.textContent = `${summary.winRate}%`;
                         profileShareKd.textContent = summary.averageKd;
                     }
                 }
