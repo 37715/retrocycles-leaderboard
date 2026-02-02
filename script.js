@@ -1,6 +1,10 @@
+// API base for CORS-enabled rankings endpoints
+const RANKINGS_API_BASE = "https://corsapi.armanelgtron.tk/rankings";
+const RANKINGS_DATERANGE_URL = `${RANKINGS_API_BASE}/daterange.php`;
+
 // HTML scraping URLs
-const MATCHES_HTML_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
-const MATCHES_DATA_URL = "https://corsproxy.io/?" + encodeURIComponent("https://rankings.trontimes.tk/history?id=tst");
+const MATCHES_HTML_URL = `${RANKINGS_API_BASE}/history?id=tst`;
+const MATCHES_DATA_URL = `${RANKINGS_API_BASE}/history?id=tst`;
 
 // Player history endpoint with season support
 // For 2026: id=tst (no date filter needed)
@@ -10,15 +14,15 @@ function getPlayerHistoryUrl(username, season = '2026') {
     
     if (season === '2026') {
         // Current season - use tst
-        baseUrl = `https://rankings.trontimes.tk/api.php?id=tst&type=history&mp=${encodeURIComponent(username)}`;
+        baseUrl = `${RANKINGS_API_BASE}/?id=tst&type=history&mp=${encodeURIComponent(username)}`;
     } else {
         // Historical seasons - use tst24 with date filtering
         const startDate = `${season}-01-01`;
         const endDate = `${season}-12-31`;
-        baseUrl = `https://rankings.trontimes.tk/api.php?id=tst24&type=history&daterange=1&datel=${startDate}&date=${endDate}&mp=${encodeURIComponent(username)}`;
+        baseUrl = `${RANKINGS_API_BASE}/?id=tst24&type=history&daterange=1&datel=${startDate}&date=${endDate}&mp=${encodeURIComponent(username)}`;
     }
     
-    return `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`;
+    return baseUrl;
 }
 
 function getPlayerSummary(matches, username) {
@@ -53,7 +57,7 @@ function getPlayerSummary(matches, username) {
     };
 }
 
-// Season configs with API IDs for rankings.trontimes.tk
+// Season configs with API IDs for rankings endpoints
 // tst = 2026 league season, tst24 = 2023-2025 league season
 const SEASONS = {
     '2026': { start: '2026-01-01', end: '2026-12-31', apiId: 'tst', label: 'Season 4 (2026)' },
@@ -94,9 +98,9 @@ async function getPlayerLeaderboardRank(username, season) {
     }
 }
 
-// Unified leaderboard URL builder - uses rankings.trontimes.tk for everything
+// Unified leaderboard URL builder - uses CORS-enabled rankings endpoint
 const getLeaderboardURL = (year, gameMode, region) => {
-    const baseUrl = "https://rankings.trontimes.tk/daterange.php";
+    const baseUrl = RANKINGS_DATERANGE_URL;
     const yearConfig = SEASONS[year];
     
     if (!yearConfig) {
@@ -124,7 +128,7 @@ const getLeaderboardURL = (year, gameMode, region) => {
     
     const url = baseUrl + '?' + params.join('&');
     
-    return "https://corsproxy.io/?" + encodeURIComponent(url);
+    return url;
 };
 
 let allPlayersData = [];
@@ -909,7 +913,7 @@ async function fetchPlayerData(year = '2026', gameMode = 'tst', region = 'combin
     // Show loading state for non-cached requests
     showLoadingState();
 
-    // All years use HTML scraping from rankings.trontimes.tk
+    // All years use HTML scraping from rankings endpoint
     await scrapeLeaderboard(year, gameMode, region, requestId, cacheKey);
 }
 
@@ -930,9 +934,6 @@ function parseLastActiveTime(changeDateText) {
 async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
 
     const htmlUrl = getLeaderboardURL(year, gameMode, region);
-    // Log the decoded URL for debugging
-    const decodedUrl = decodeURIComponent(htmlUrl.replace('https://corsproxy.io/?', ''));
-
     try {
         const response = await fetch(htmlUrl);
 
@@ -969,7 +970,7 @@ async function scrapeLeaderboard(year, gameMode, region, requestId, cacheKey) {
             const cells = row.querySelectorAll('td');
             if (cells.length < 3) return; // Skip invalid rows
 
-            // Extract data from HTML table - rankings.trontimes.tk has 11 columns:
+            // Extract data from HTML table - rankings table has 11 columns:
             // Columns: # | Username | Rating | Latest change | Change date | Matches W/L | Played | Avg place | Avg score | High score | K/D
             const rank = parseInt(cells[0]?.textContent?.trim()) || index;
             const name = cells[1]?.textContent?.trim();
