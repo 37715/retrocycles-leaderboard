@@ -2,9 +2,9 @@
 const RANKINGS_API_BASE = "https://corsapi.armanelgtron.tk/rankings";
 const RANKINGS_DATERANGE_URL = `${RANKINGS_API_BASE}/daterange.php`;
 
-// HTML scraping URLs
+// Match history URLs
 const MATCHES_HTML_URL = `${RANKINGS_API_BASE}/history?id=tst`;
-const MATCHES_DATA_URL = `${RANKINGS_API_BASE}/history?id=tst`;
+const MATCHES_DATA_URL = `${RANKINGS_API_BASE}/?type=history&limit=10&columns=player,team,played,score,place`;
 
 // Player history endpoint with season support
 // For 2026: id=tst (no date filter needed)
@@ -1366,6 +1366,69 @@ async function fetchMatchesData() {
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const payload = await response.json();
+            const rows = Array.isArray(payload)
+                ? payload
+                : Array.isArray(payload?.data)
+                    ? payload.data
+                    : Array.isArray(payload?.history)
+                        ? payload.history
+                        : [];
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                allMatchesData = [];
+                renderRecentMatches();
+                return;
+            }
+
+            const parsePlayedToTimestamp = (playedValue) => {
+                if (playedValue === null || playedValue === undefined) {
+                    return Math.floor(Date.now() / 1000);
+                }
+                if (typeof playedValue === 'number') {
+                    return playedValue > 1e12 ? Math.floor(playedValue / 1000) : playedValue;
+                }
+                const parsed = Date.parse(playedValue);
+                if (Number.isNaN(parsed)) {
+                    return Math.floor(Date.now() / 1000);
+                }
+                return Math.floor(parsed / 1000);
+            };
+
+            const groupedMatches = new Map();
+            rows.forEach((row, index) => {
+                if (!row) return;
+                const played = row.played ?? row.date ?? row.time ?? row.played_at ?? row.timestamp;
+                const matchKey = played ? String(played) : `unknown-${index}`;
+                if (!groupedMatches.has(matchKey)) {
+                    groupedMatches.set(matchKey, {
+                        name: `Match ${groupedMatches.size + 1}`,
+                        date: parsePlayedToTimestamp(played),
+                        players: []
+                    });
+                }
+                const match = groupedMatches.get(matchKey);
+                const playerName = row.player ?? row.username ?? row.name;
+                if (!playerName) return;
+                match.players.push({
+                    team: row.team ?? row.teamName ?? 'team',
+                    player: playerName,
+                    score: Number(row.score) || 0,
+                    place: Number(row.place) || 4
+                });
+            });
+
+            const matches = Array.from(groupedMatches.values())
+                .filter((match) => Array.isArray(match.players) && match.players.length > 0)
+                .sort((a, b) => (b.date || 0) - (a.date || 0));
+
+            allMatchesData = matches;
+            renderRecentMatches();
+            return;
         }
 
         const html = await response.text();
