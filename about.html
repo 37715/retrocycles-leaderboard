@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RCL | about</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="beatstore-menu-widget.css">
+    <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="beatstore-menu"></div>
+    <div class="container">
+        <nav class="nav-menu-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/mazing" class="nav-link group">
+                        <span class="nav-text">mazing</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/leaderboard" class="nav-link group">
+                        <span class="nav-text">leaderboard</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/tutorials" class="nav-link group">
+                        <span class="nav-text">tutorials</span>
+                        <span class="nav-border-animation"></span>
+                        <span class="nav-bg-animation"></span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="header">
+            <div class="title-section">
+                <h1 class="title">about</h1>
+            </div>
+            <p class="subtitle">retrocycles league</p>
+        </header>
+
+        <div class="main-content">
+            <div class="page-content" style="max-width: 720px; text-transform: lowercase;">
+                <p style="margin-bottom: 1rem;">retrocycles league (rcl) is the home of competitive retrocycles. this site is the <strong>hub</strong> and <strong>leaderboard</strong> for the community: a place to learn, check rankings, and follow the game.</p>
+                <p style="margin-bottom: 1rem;">the <strong>leaderboard</strong> tracks elo, stats, and rank tiers so you can see where you stand and follow other players. the <strong>hub</strong> (and linked rcl main site) is where you create an account, log in with <code>/login &lt;user&gt;@rcl</code> in-game, and get into pickup or ranked play.</p>
+                <p style="margin-bottom: 1rem;">going forward, rcl is building toward a clearer <strong>competitive landscape</strong>—structured seasons, tournaments, and better support for both casual and serious play. this hub and leaderboard are the first step in that direction.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        window.process = window.process || { env: { NODE_ENV: "production" } };
+    </script>
+    <script src="beatstore-menu-widget.js"></script>
+    <script>
+        window.mountBeatstoreMenu(document.getElementById("beatstore-menu"), {
+            backgroundColor: "#0b0b0b",
+            primaryColor: "#e9e9ef",
+            accentColor: "#7c3aed",
+            fontFamily: "'SUSE Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+            zIndex: 9999,
+        });
+        (function () {
+            const labelText = "rcl";
+            const wrapper = document.querySelector(".beatstore-menu-wrapper");
+            if (!wrapper) return;
+            const setLabel = () => {
+                wrapper.querySelectorAll(".sm-toggle-line").forEach((el) => {
+                    if (el.textContent !== labelText) {
+                        el.textContent = labelText;
+                    }
+                });
+            };
+            setLabel();
+            const observer = new MutationObserver(setLabel);
+            observer.observe(wrapper, { subtree: true, childList: true, characterData: true });
+        })();
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

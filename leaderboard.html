@@ -6,15 +6,12 @@
     <title>RCL | leaderboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23262626'/><rect x='6' y='6' width='20' height='20' fill='none' stroke='%23ffffff' stroke-width='2'/><rect x='10' y='10' width='12' height='12' fill='none' stroke='%23ffffff' stroke-width='1.5'/><rect x='14' y='14' width='4' height='4' fill='%23ffffff'/></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="beatstore-menu-widget.css">
     <link href="https://fonts.googleapis.com/css2?family=SUSE+Mono:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="beatstore-menu"></div>
     <div class="container">
-        <!-- Brand Name -->
-        <div class="brand">
-            <a href="/" style="text-decoration: none; color: inherit;">RCL</a>
-        </div>
-        
         <!-- Page Navigation Header -->
         <nav class="nav-menu-container">
             <ul class="nav-menu">
@@ -148,6 +145,34 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        window.process = window.process || { env: { NODE_ENV: "production" } };
+    </script>
+    <script src="beatstore-menu-widget.js"></script>
+    <script>
+        window.mountBeatstoreMenu(document.getElementById("beatstore-menu"), {
+            backgroundColor: "#0b0b0b",
+            primaryColor: "#e9e9ef",
+            accentColor: "#7c3aed",
+            fontFamily: "'SUSE Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+            zIndex: 9999,
+        });
+        (function () {
+            const labelText = "rcl";
+            const wrapper = document.querySelector(".beatstore-menu-wrapper");
+            if (!wrapper) return;
+            const setLabel = () => {
+                wrapper.querySelectorAll(".sm-toggle-line").forEach((el) => {
+                    if (el.textContent !== labelText) {
+                        el.textContent = labelText;
+                    }
+                });
+            };
+            setLabel();
+            const observer = new MutationObserver(setLabel);
+            observer.observe(wrapper, { subtree: true, childList: true, characterData: true });
+        })();
+    </script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
