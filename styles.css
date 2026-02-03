@@ -2016,6 +2016,17 @@ a.tier:hover {
     transform: scale(0.98);
 }
 
+.leaderboard-data-credit {
+    margin: 2rem 0 1.5rem;
+    padding: 0 1rem;
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--text-muted);
+    opacity: 0.5;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
 .leaderboard-header {
     display: grid;
     grid-template-columns:
