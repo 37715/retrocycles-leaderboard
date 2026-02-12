@@ -1849,11 +1849,6 @@ const difficultyConfig = {
         description: 'there\'s more to life than tron you know...',
         complexity: 'extreme'
     },
-    infinite: {
-        title: 'Infinite Mazes',
-        description: 'these vary wildly in difficulty, but they are all good fun and good practice.',
-        complexity: 'extreme'
-    },
     nightmare: {
         title: 'Nightmare Mazes',
         description: 'the ultimate test of maze solving skills',
@@ -1863,6 +1858,11 @@ const difficultyConfig = {
         title: 'Demon Mazes',
         description: 'congrats... you have mastered mazing, now go touch some grass.',
         complexity: 'demonic'
+    },
+    transcendent: {
+        title: 'Transcendent Mazes',
+        description: 'beyond the veil. only legends dare.',
+        complexity: 'transcendent'
     }
 };
 
@@ -1915,13 +1915,7 @@ const customMazeTitles = {
         'quadraparox',
         'how to feel alive'
     ],
-    infinite: [
-        'simple steve',
-        'rainy boy',
-        'jack the ripper',
-        'eternal green',
-        'daddy doov'
-    ]
+    transcendent: []
 };
 
 // Generate maze data from file structure
@@ -1968,8 +1962,8 @@ async function loadMazeDataFromFiles() {
         intermediate: 6, // 6 maze files
         advanced: 9,     // 9 maze files
         expert: 8,       // 8 maze files
-        infinite: 5,     // 5 maze files
-        demon: 9         // 9 maze files
+        demon: 9,        // 9 maze files
+        transcendent: 0  // add maze files to assets/mazes/transcendent/
     };
 
     // Generate maze data only for difficulties with files
@@ -2070,6 +2064,7 @@ function createMazeCard(maze) {
     const card = document.createElement('div');
     card.className = 'maze-card';
     card.setAttribute('data-maze-id', maze.id);
+    card.setAttribute('data-difficulty', maze.difficulty);
 
     card.innerHTML = `
         <div class="maze-video-container">

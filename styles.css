@@ -1897,15 +1897,23 @@ a.tier:hover {
 
 .simple-mode .rating-col { 
     flex: 0 0 100px !important; 
-    text-align: center !important;
+    text-align: right !important;
     display: flex !important;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
 }
 
 .simple-mode .rating { 
     flex: 0 0 100px !important; 
-    text-align: center !important;
+    text-align: right !important;
+}
+
+.simple-mode .activity-col,
+.simple-mode .last-active {
+    flex: 0 0 100px !important;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .simple-mode .matches-col,
@@ -2060,6 +2068,8 @@ a.tier:hover {
     align-items: center;
     justify-content: center;
     text-align: center;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .leaderboard-entry {
@@ -2088,13 +2098,27 @@ a.tier:hover {
     position: relative;
 }
 
-.leaderboard-entry > div {
+.leaderboard-entry > div,
+.leaderboard-entry > a {
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     position: relative;
     z-index: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ELO column: right-align so digits line up; full cell width + tabular nums for consistent alignment */
+.leaderboard-header .rating-col,
+.leaderboard-entry .rating {
+    justify-content: flex-end;
+    text-align: right;
+    width: 100%;
+    min-width: 0;
+    padding-right: 0.25rem;
+    box-sizing: border-box;
 }
 
 /* Exception for player column - keep left aligned */
@@ -2301,6 +2325,10 @@ a.tier:hover {
     font-size: 0.8rem;
     color: var(--text-muted);
     font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 
@@ -2308,9 +2336,13 @@ a.tier:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .winrate-bar {
+    flex: 1 1 0;
+    min-width: 40px;
+    max-width: 60px;
     width: 60px;
     height: 12px;
     border-radius: 2px;
@@ -2326,9 +2358,12 @@ a.tier:hover {
 }
 
 .matches-count {
+    flex: 0 0 auto;
+    min-width: 2.2em;
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-weight: 400;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat {
@@ -4043,8 +4078,8 @@ a.tier:hover {
 .difficulty-nav-menu .nav-bg-animation {
     position: absolute;
     top: 2px;
-    left: 0;
-    width: 100%;
+    left: 4px;
+    width: calc(100% - 4px);
     height: 100%;
     background: #262626;
     transform: translateY(-100%);
@@ -4065,6 +4100,75 @@ a.tier:hover {
 .difficulty-nav-menu .group.active .nav-bg-animation {
     transform: translateY(0);
     opacity: 1;
+}
+
+/* Difficulty tier: thin left accent – soft solid colors, no gradient */
+.difficulty-nav-menu .nav-link {
+    position: relative;
+    overflow: hidden;
+}
+.difficulty-nav-menu .nav-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    pointer-events: none;
+}
+.difficulty-nav-menu .nav-link[data-difficulty="basic"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 40%, #64748b 100%);
+}
+.difficulty-nav-menu .nav-link[data-difficulty="intermediate"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 35%, #2dd4bf 100%);
+}
+.difficulty-nav-menu .nav-link[data-difficulty="advanced"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 35%, #fbbf24 100%);
+}
+.difficulty-nav-menu .nav-link[data-difficulty="expert"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 35%, #fb923c 100%);
+}
+.difficulty-nav-menu .nav-link[data-difficulty="demon"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 40%, #f87171 100%);
+}
+.difficulty-nav-menu .nav-link[data-difficulty="transcendent"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 35%, #38bdf8 100%);
+}
+
+/* Maze cards: same 3px accent */
+.maze-card {
+    position: relative;
+    overflow: hidden;
+}
+.maze-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    pointer-events: none;
+    z-index: 1;
+}
+.maze-card[data-difficulty="basic"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 40%, #64748b 100%);
+}
+.maze-card[data-difficulty="intermediate"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 35%, #2dd4bf 100%);
+}
+.maze-card[data-difficulty="advanced"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 35%, #fbbf24 100%);
+}
+.maze-card[data-difficulty="expert"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 35%, #fb923c 100%);
+}
+.maze-card[data-difficulty="demon"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 40%, #f87171 100%);
+}
+.maze-card[data-difficulty="transcendent"]::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 35%, #38bdf8 100%);
 }
 
 /* Main Content Layout - Mazing Page Only */
