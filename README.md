@@ -27,23 +27,3 @@ retrocycles-leaderboard/
             └── infinite/
 ```
 
-## Features
-
-- **Clean URLs**: No .html extensions in URLs (handled by vercel.json)
-- **Organized Assets**: All assets properly organized in public/ folder
-- **Responsive Design**: Works on all devices
-- **Theme Toggle**: Dark/Light mode with persistence
-- **Dynamic Content**: Maze gallery with difficulty-based descriptions
-
-## Deployment
-
-This project is configured for deployment on Vercel:
-1. Connect your GitHub repository to Vercel
-2. Push to main branch
-3. Vercel will automatically deploy using the vercel.json configuration
-
-All URLs will work without .html extensions:
-- https://yoursite.vercel.app/ (hub)
-- https://yoursite.vercel.app/leaderboard
-- https://yoursite.vercel.app/mazing
-- https://yoursite.vercel.app/tutorials
