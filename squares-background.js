@@ -19,6 +19,8 @@ class SquaresBackground {
         // Internal state
         this.gridOffset = { x: 0, y: 0 };
         this.hoveredSquare = null;
+        this.mousePos = { x: 0, y: 0 };
+        this.isMouseOver = false;
         this.numSquaresX = 0;
         this.numSquaresY = 0;
         this.animationFrameId = null;
@@ -62,27 +64,40 @@ class SquaresBackground {
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
 
-        // This matches the React component's logic exactly
-        const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
-        const startY = Math.floor(this.gridOffset.y / this.squareSize) * this.squareSize;
-
-        const hoveredSquareX = Math.floor(
-            (mouseX + this.gridOffset.x - startX) / this.squareSize
-        );
-        const hoveredSquareY = Math.floor(
-            (mouseY + this.gridOffset.y - startY) / this.squareSize
-        );
-
-        this.hoveredSquare = { x: hoveredSquareX, y: hoveredSquareY };
+        this.hoveredSquare = { x: 0, y: 0 }; // will calculate later
+        this.mousePos = { x: mouseX, y: mouseY };
+        this.isMouseOver = true;
     }
 
     handleMouseLeave() {
+        if (this.hoveredSquare) {
+            const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
+            const startY = Math.floor(this.gridOffset.y / this.squareSize) * this.squareSize;
+            const hoveredSquareX = Math.floor(
+                (this.mousePos.x + this.gridOffset.x - startX) / this.squareSize
+            );
+            const hoveredSquareY = Math.floor(
+                (this.mousePos.y + this.gridOffset.y - startY) / this.squareSize
+            );
+            this.hoveredSquare = { x: hoveredSquareX, y: hoveredSquareY };
+        }
+        this.isMouseOver = false;
         this.hoveredSquare = null;
     }
 
     drawGrid() {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Compute hovered square from stored mouse position (so we don't recalc on every mousemove)
+        if (this.isMouseOver) {
+            const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
+            const startY = Math.floor(this.gridOffset.y / this.squareSize) * this.squareSize;
+            this.hoveredSquare = {
+                x: Math.floor((this.mousePos.x + this.gridOffset.x - startX) / this.squareSize),
+                y: Math.floor((this.mousePos.y + this.gridOffset.y - startY) / this.squareSize)
+            };
+        }
 
         // This matches the React component's drawing logic exactly
         const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
