@@ -19,6 +19,7 @@ class SquaresBackground {
         // Internal state
         this.gridOffset = { x: 0, y: 0 };
         this.hoveredSquare = null;
+        this.mousePos = { x: 0, y: 0 };
         this.numSquaresX = 0;
         this.numSquaresY = 0;
         this.animationFrameId = null;
@@ -62,18 +63,8 @@ class SquaresBackground {
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
 
-        // This matches the React component's logic exactly
-        const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
-        const startY = Math.floor(this.gridOffset.y / this.squareSize) * this.squareSize;
-
-        const hoveredSquareX = Math.floor(
-            (mouseX + this.gridOffset.x - startX) / this.squareSize
-        );
-        const hoveredSquareY = Math.floor(
-            (mouseY + this.gridOffset.y - startY) / this.squareSize
-        );
-
-        this.hoveredSquare = { x: hoveredSquareX, y: hoveredSquareY };
+        this.hoveredSquare = { x: 0, y: 0 }; // will calculate later
+        this.mousePos = { x: mouseX, y: mouseY };
     }
 
     handleMouseLeave() {
@@ -87,6 +78,17 @@ class SquaresBackground {
         // This matches the React component's drawing logic exactly
         const startX = Math.floor(this.gridOffset.x / this.squareSize) * this.squareSize;
         const startY = Math.floor(this.gridOffset.y / this.squareSize) * this.squareSize;
+
+        if (this.hoveredSquare) {
+            const hoveredSquareX = Math.floor(
+                (this.mousePos.x + this.gridOffset.x - startX) / this.squareSize
+            );
+            const hoveredSquareY = Math.floor(
+                (this.mousePos.y + this.gridOffset.y - startY) / this.squareSize
+            );
+
+            this.hoveredSquare = { x: hoveredSquareX, y: hoveredSquareY };
+        };
 
         this.ctx.lineWidth = 0.5;
 
