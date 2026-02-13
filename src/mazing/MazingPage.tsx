@@ -86,7 +86,12 @@ export function MazingPage() {
           <ul className="difficulty-nav-menu">
             {(Object.keys(difficultyConfig) as Difficulty[]).map((value) => (
               <li key={value} className="nav-item">
-                <button type="button" className={`nav-link group ${difficulty === value ? "active" : ""}`} onClick={() => setDifficulty(value)}>
+                <button
+                  type="button"
+                  className={`nav-link group ${difficulty === value ? "active" : ""}`}
+                  data-difficulty={value}
+                  onClick={() => setDifficulty(value)}
+                >
                   <span className="nav-text">{value}</span>
                   <span className="nav-border-animation"></span>
                   <span className="nav-bg-animation"></span>
@@ -105,7 +110,7 @@ export function MazingPage() {
           )}
           <div className="maze-grid" id="maze-grid" style={{ display: mazes.length ? "grid" : "none" }}>
             {mazes.map((maze) => (
-              <div key={maze.id} className="maze-card" onClick={() => setActiveMaze(maze)}>
+              <div key={maze.id} className="maze-card" data-difficulty={maze.difficulty} onClick={() => setActiveMaze(maze)}>
                 <div className="maze-video-container">
                   <video className="maze-video" muted loop preload="metadata">
                     <source src={maze.videoUrl} type="video/webm" />

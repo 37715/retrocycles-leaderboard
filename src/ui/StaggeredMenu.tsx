@@ -1,5 +1,6 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 
@@ -17,6 +18,7 @@ interface StaggeredMenuProps {
   isFixed?: boolean;
   onMenuOpen?: () => void;
   onMenuClose?: () => void;
+  onItemClick?: (href: string, event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 export default function StaggeredMenu({
@@ -30,7 +32,8 @@ export default function StaggeredMenu({
   changeMenuColorOnOpen = true,
   isFixed = false,
   onMenuOpen,
-  onMenuClose
+  onMenuClose,
+  onItemClick
 }: StaggeredMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -146,7 +149,7 @@ export default function StaggeredMenu({
               <ul className="sm-panel-list" role="list" data-numbering={displayItemNumbering || undefined}>
                 {items.map((it, idx) => (
                   <li className="sm-panel-itemWrap" key={it.label + idx}>
-                    <a className="sm-panel-item" href={it.link} aria-label={it.ariaLabel} data-index={idx + 1}>
+                    <a className="sm-panel-item" href={it.link} aria-label={it.ariaLabel} data-index={idx + 1} onClick={(event) => onItemClick?.(it.link, event)}>
                       <span className="sm-panel-itemLabel">{it.label}</span>
                     </a>
                   </li>

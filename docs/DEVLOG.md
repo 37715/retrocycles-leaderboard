@@ -46,3 +46,10 @@
 - Fixed menu layer click-blocking regression by updating `src/ui/staggered-menu.css`: full-screen fixed wrapper now uses `pointer-events: none`, and panel pointer events are enabled only when menu is open (`[data-open]`), so dashboard cards and page controls remain clickable when menu is closed.
 - Added scroll-collision visual treatment in `src/ui/BeatstoreMenu.tsx`: when page scroll passes a threshold, the menu toggle transitions in a dark pill background/border/shadow for readability over content.
 - Issue encountered: one build run failed to collect page data with transient route module lookup errors; resolved by clearing `.next` and rebuilding successfully.
+- Restored explicit menu item interactivity: added direct per-link click handler wiring (`onItemClick`) from `src/ui/StaggeredMenu.tsx` to `src/ui/BeatstoreMenu.tsx` so item clicks reliably route via Next navigation.
+- Improved menu item affordance in `src/ui/BeatstoreMenu.tsx`: hover/focus now brightens to white with glow, and cursor is forced to pointer on both item and label text.
+- Adjusted menu pointer-event layering in `src/ui/staggered-menu.css`: fixed wrapper remains click-through when closed, but switches to interactive when `data-open` is set so menu links receive hover/click events.
+- Fixed remaining menu interaction blocker by correcting stacking order in `src/ui/BeatstoreMenu.tsx`: menu wrapper is now raised above the dimming overlay (`fixed-wrapper` z-index `10000`, overlay `9990`) so panel hover/click events are no longer intercepted.
+- Restored mazing difficulty gradient accents by adding missing `data-difficulty` attributes in `src/mazing/MazingPage.tsx` on both difficulty buttons and maze cards; this reactivates existing gradient CSS selectors.
+- Updated leaderboard default page size in `src/leaderboard/LeaderboardApp.tsx` from `20` to `100`.
+- Tuned mazing difficulty button selected-state styling for black backgrounds in `styles.css`: removed heavy active fill overlay, kept hover tint softer, and switched active to a cleaner dark selected treatment (stronger border + subtle inset ring).

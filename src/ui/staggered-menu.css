@@ -16,6 +16,10 @@
   pointer-events: none;
 }
 
+.staggered-menu-wrapper.fixed-wrapper[data-open] {
+  pointer-events: auto;
+}
+
 .staggered-menu-header {
   position: absolute;
   top: 0;

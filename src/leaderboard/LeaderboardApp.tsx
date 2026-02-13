@@ -133,7 +133,7 @@ export function LeaderboardApp() {
   const [region, setRegion] = useState<"combined" | "us" | "eu">("combined");
   const [search, setSearch] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(100);
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "rank", dir: "asc" });
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
