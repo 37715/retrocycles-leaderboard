@@ -4,26 +4,27 @@
 
 ```
 retrocycles-leaderboard/
-├── index.html              # Main hub page (accessible at /)
-├── leaderboard.html        # Leaderboard page (accessible at /leaderboard)
-├── mazing.html            # Mazing gallery page (accessible at /mazing)
-├── tutorials.html         # Tutorials page (accessible at /tutorials)
-├── vercel.json           # Vercel configuration for URL rewrites
-└── public/
-    ├── css/
-    │   └── styles.css    # Main stylesheet
-    ├── js/
-    │   ├── script.js     # Main JavaScript file
-    │   └── script.js.backup # Backup of original script
-    ├── images/
-    │   └── ranks/        # Rank badge images (bronze.svg, silver.svg, etc.)
-    └── assets/
-        └── mazes/        # Maze video files organized by difficulty
-            ├── basic/
-            ├── intermediate/
-            ├── advanced/
-            ├── expert/
-            ├── demon/
-            └── infinite/
+├── app/                     # Next.js App Router routes
+│   ├── page.tsx             # Hub page (/)
+│   ├── leaderboard/page.tsx
+│   ├── profile/page.tsx
+│   ├── ranks/page.tsx
+│   ├── mazing/page.tsx
+│   ├── tutorials/page.tsx
+│   ├── about/page.tsx
+│   └── support/page.tsx
+├── src/
+│   ├── lib/rclApi.ts        # Typed RCL API adapter (/api/v1)
+│   ├── leaderboard/          # Leaderboard React client component
+│   ├── profile/              # Profile React client component
+│   ├── ranks/                # Ranks React component
+│   ├── mazing/               # Mazing React client component
+│   ├── tutorials/            # Tutorials React client component
+│   └── ui/                   # Shared UI (nav, beatstore mount)
+├── styles.css               # Main site stylesheet (imported in app/globals.css)
+├── beatstore-menu-widget.css
+├── beatstore-menu-widget.js
+├── vercel.json              # Next.js deployment config
+└── Makefile                 # install/dev/build/start/check/clean/fresh helpers
 ```
 

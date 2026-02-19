@@ -1,0 +1,67 @@
+# Dev Log
+
+## 2026-02-13
+- Standardized feature component naming to page semantics: renamed exports from `LeaderboardApp` -> `LeaderboardPage`, `ProfileApp` -> `ProfilePage`, and `RanksApp` -> `RanksPage` to reflect one unified RCL hub instead of distinct apps.
+- Updated App Router route wrappers (`app/leaderboard/page.tsx`, `app/profile/page.tsx`, `app/ranks/page.tsx`) to import/render the new page-named components and use explicit `*RoutePage` function names for consistency with other route files.
+- Issue encountered: kept existing file paths (`*App.tsx`) unchanged in this pass to avoid broad file-move churn; a follow-up filesystem rename can complete the convention if desired.
+- Fixed leaderboard/profile data regressions in `src/lib/rclApi.ts`: added `changeDate` -> `lastActive` mapping, added `played/matches` fallback win-rate calculation, and made profile loading resilient with `summary` endpoint fallback to leaderboard + matches data.
+- Added match-history resilience in `src/lib/rclApi.ts`: if `/api/v1/matches` or `/api/v1/matches/:id` fails, client now falls back to legacy `https://retrocyclesleague.com/api/history/tst` endpoints to restore overlay data.
+- Restored leaderboard advanced/simple transition behavior in `src/leaderboard/LeaderboardApp.tsx` by reintroducing timed `transitioning` class toggling on advanced toggle changes.
+- Fixed menu/profile UX regressions: `home` sidebar item now links to `https://retrocyclesleague.com` (`src/ui/BeatstoreMenu.tsx`), close/open label animation now runs both directions (`src/ui/StaggeredMenu.tsx`), and username links no longer show underline (`styles.css`).
+- Fixed style collision causing score-font inconsistency by scoping a generic `.score` rule to `.team-result .score` in `styles.css`.
+- Issue encountered: backend currently returns identical payloads for `region=combined|us|eu` from `/api/v1/leaderboard`, so region toggle still cannot produce distinct data client-side until API-side filtering is corrected.
+
+## 2026-02-12
+- Added `docs/INDEX.md` to establish canonical documentation mapping for leaderboard-related work.
+- Bootstrapped `docs/DEVLOG.md` to track practical implementation changes and blockers.
+- Issue encountered: project has no React runtime, so direct shadcn React components cannot be mounted without framework migration.
+- Added leaderboard data-table shell UI in `leaderboard.html` (search, column visibility toggles, sortable headers, page selection checkbox, pagination controls).
+- Implemented leaderboard data-table state engine in `script.js` with sorting, filtering, pagination, column visibility, and row selection.
+- Added data-table styles in `styles.css` for toolbar, sortable headers, column menu, hidden-column behavior, pagination, and mobile responsiveness.
+- Issue encountered: existing leaderboard grid and legacy class names required explicit per-column visibility mapping to avoid hiding both score columns together.
+- Added Vite multi-page configuration via `vite.config.js` with explicit HTML entry points for all site routes.
+- Added a root `Makefile` suite for install/dev/build/preview/check/clean/fresh to standardize local workflows.
+- Updated `package.json` to include Vite scripts and dev dependency, keeping existing runtime dependency intact.
+- Installed dependencies and verified `npm run build` succeeds with Vite.
+- Fixed invalid HTML in `ranks.html` by escaping `< 1400 ELO` to `&lt; 1400 ELO` (parse5 compatibility).
+- Issue encountered: Vite reports non-module script tags as non-bundled warnings across pages; current behavior remains functional but scripts are copied/served as legacy assets.
+- Added React runtime dependencies (`react`, `react-dom`) and Vite React plugin (`@vitejs/plugin-react`).
+- Migrated `leaderboard.html` to a React entrypoint (`/src/leaderboard/main.jsx`) and removed the legacy `script.js` binding from that page.
+- Implemented `src/leaderboard/LeaderboardApp.jsx` with React-managed data table state: season/region filtering, sorting, search, pagination, row selection, and column visibility.
+- Issue encountered: this is an incremental migration, so leaderboard-specific legacy behaviors in `script.js` (e.g. match-history overlay logic) are not mounted on the React page and must be reintroduced as React components in follow-up.
+- Migrated `profile.html` to React (`src/profile/main.jsx`, `src/profile/ProfileApp.jsx`) with season switching, rank lookup, profile summary cards, match history table, and share-card modal.
+- Migrated `ranks.html` to React (`src/ranks/main.jsx`, `src/ranks/RanksApp.jsx`) as a static component to remove dependency on legacy `script.js`.
+- Issue encountered: profile React migration intentionally ships a reduced feature set vs legacy (no region pie/elo chart/breakdown toggles yet); those should be added as dedicated React components next.
+- Added `src/lib/rclApi.js` as a standardized client API adapter targeting `/api/v1` with normalized response mapping.
+- Updated React pages (`LeaderboardApp`, `ProfileApp`) to consume the shared RCL adapter instead of page-local endpoint logic.
+- Added `RCL_API.md` as a backend handoff contract document with required routes, payload fields, aliases, and error format.
+- Switched `src/lib/rclApi.js` to strict `/api/v1` usage now that RCL API is live; removed legacy fallback and HTML-scrape compatibility paths.
+- Completed full cutover to `Next.js + TypeScript` App Router (`app/*` routes) and replaced Vite scripts/tooling in `package.json`.
+- Ported API layer to typed `src/lib/rclApi.ts` with shared interfaces in `src/lib/types.ts`.
+- Ported routes to Next pages: hub, leaderboard, profile, ranks, mazing, tutorials, about, support.
+- Reimplemented legacy interactive features in React components: hub squares background, match history overlay, mazing gallery modal flow, tutorials copy interactions.
+- Removed obsolete entrypoints and legacy runtime files (`*.html`, `script.js`, `script.js.backup`, `squares-background.js`, `vite.config.js`).
+- Added file-serving route handlers for `/images/*` and `/assets/*` to preserve existing asset URL contracts without moving binary assets.
+- Issue encountered: Next.js 15 route handler param typing requires `params` as a `Promise`; fixed in catch-all file routes.
+- Issue encountered: `useSearchParams()` SSR build constraint required suspense boundary; fixed in `app/profile/page.tsx`.
+- Updated frontend API default host in `src/lib/rclApi.ts` from relative `/api/v1` to absolute `https://retrocyclesleague.com/api/v1` to ensure browser requests hit the live RCL API origin by default.
+- Replaced script-mounted beatstore widget integration with local menu components: `src/ui/BeatstoreMenu.tsx` and `src/ui/StaggeredMenu.tsx`, wired directly in `app/layout.tsx`.
+- Added local menu CSS at `src/ui/staggered-menu.css` and switched global import from `beatstore-menu-widget.css` to the new stylesheet in `app/globals.css`.
+- Removed obsolete widget bootstrap points: deleted `src/ui/BeatstoreMenuMount.tsx` and route handler `app/beatstore-menu-widget.js/route.ts`.
+- Removed leaderboard row-selection UI from `src/leaderboard/LeaderboardApp.tsx` (header checkbox, per-row checkbox cells, selection state, and selected-count text).
+- Updated leaderboard grid layout in `styles.css` to remove the old left select column width so headers/cells stay aligned.
+- Verified live leaderboard API routes: `GET https://retrocyclesleague.com/api/v1/leaderboard?...` returns `200` with data; `GET https://retrocyclesleague.com/api/v1/matches?...` currently returns `404` (source of leaderboard-related 404s when match history is requested).
+- Updated menu links in `src/ui/BeatstoreMenu.tsx` to requested static items: `home`, `hub`, `about`, `support` (removed compact/comfy toggle behavior).
+- Removed page blur side-effect when menu opens by dropping overlay `backdropFilter` and panel blur styling in `src/ui/BeatstoreMenu.tsx`.
+- Fixed initial menu flash on page load by deferring panel/prelayer render until client mount in `src/ui/StaggeredMenu.tsx`.
+- Fixed menu layer click-blocking regression by updating `src/ui/staggered-menu.css`: full-screen fixed wrapper now uses `pointer-events: none`, and panel pointer events are enabled only when menu is open (`[data-open]`), so dashboard cards and page controls remain clickable when menu is closed.
+- Added scroll-collision visual treatment in `src/ui/BeatstoreMenu.tsx`: when page scroll passes a threshold, the menu toggle transitions in a dark pill background/border/shadow for readability over content.
+- Issue encountered: one build run failed to collect page data with transient route module lookup errors; resolved by clearing `.next` and rebuilding successfully.
+- Restored explicit menu item interactivity: added direct per-link click handler wiring (`onItemClick`) from `src/ui/StaggeredMenu.tsx` to `src/ui/BeatstoreMenu.tsx` so item clicks reliably route via Next navigation.
+- Improved menu item affordance in `src/ui/BeatstoreMenu.tsx`: hover/focus now brightens to white with glow, and cursor is forced to pointer on both item and label text.
+- Adjusted menu pointer-event layering in `src/ui/staggered-menu.css`: fixed wrapper remains click-through when closed, but switches to interactive when `data-open` is set so menu links receive hover/click events.
+- Fixed remaining menu interaction blocker by correcting stacking order in `src/ui/BeatstoreMenu.tsx`: menu wrapper is now raised above the dimming overlay (`fixed-wrapper` z-index `10000`, overlay `9990`) so panel hover/click events are no longer intercepted.
+- Restored mazing difficulty gradient accents by adding missing `data-difficulty` attributes in `src/mazing/MazingPage.tsx` on both difficulty buttons and maze cards; this reactivates existing gradient CSS selectors.
+- Updated leaderboard default page size in `src/leaderboard/LeaderboardApp.tsx` from `20` to `100`.
+- Tuned mazing difficulty button selected-state styling for black backgrounds in `styles.css`: removed heavy active fill overlay, kept hover tint softer, and switched active to a cleaner dark selected treatment (stronger border + subtle inset ring).
+- Fixed contrast regression for selected/hovered difficulty labels on black buttons in `styles.css` by overriding global `.group .nav-text` dark-mode inversion specifically for `.difficulty-nav-menu` so text remains light (`#f5f7fb`) in active and hover states.
