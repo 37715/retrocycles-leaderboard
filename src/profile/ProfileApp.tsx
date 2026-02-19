@@ -16,6 +16,7 @@ const DEFAULT_SUMMARY: ProfileSummary = {
   latestElo: null,
   latestOnline: "—"
 };
+const SEASON_ORDER: Season[] = ["2026", "2025", "2024", "2023"];
 
 export function ProfileApp() {
   const params = useSearchParams();
@@ -104,9 +105,9 @@ export function ProfileApp() {
             <div className="profile-hero-meta">
               <span>player profile</span>
               <select className="profile-season-select" value={season} onChange={(e) => setSeason(e.target.value as Season)}>
-                {Object.entries(SEASONS).map(([value, info]) => (
+                {SEASON_ORDER.map((value) => (
                   <option key={value} value={value}>
-                    {info.label}
+                    {SEASONS[value].label}
                   </option>
                 ))}
               </select>

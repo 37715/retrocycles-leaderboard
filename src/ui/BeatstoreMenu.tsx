@@ -11,23 +11,27 @@ export function BeatstoreMenu() {
   const router = useRouter();
 
   const menuItems = [
-    { label: "home", link: "/leaderboard", ariaLabel: "Home" },
+    { label: "home", link: "https://retrocyclesleague.com", ariaLabel: "Home" },
     { label: "hub", link: "/", ariaLabel: "Hub" },
     { label: "about", link: "/about", ariaLabel: "About" },
     { label: "support", link: "/support", ariaLabel: "Support" }
   ];
 
   const handleMenuClose = () => {
-    setIsOpen(false);
     const toggleButton = document.querySelector(".beatstore-menu-wrapper .sm-toggle") as HTMLButtonElement | null;
-    if (toggleButton) toggleButton.click();
+    if (toggleButton?.getAttribute("aria-expanded") === "true") {
+      toggleButton.click();
+    }
+    setIsOpen(false);
   };
 
   const handleMenuItemClick = (href: string, e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (href.startsWith("/")) {
-      e.preventDefault();
+    e.preventDefault();
+    handleMenuClose();
+    if (href.startsWith("http")) {
+      window.location.href = href;
+    } else {
       router.push(href);
-      handleMenuClose();
     }
   };
 
@@ -42,13 +46,29 @@ export function BeatstoreMenu() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      const panel = document.querySelector(".beatstore-menu-wrapper .staggered-menu-panel");
+      const toggle = document.querySelector(".beatstore-menu-wrapper .sm-toggle");
+      if (!target) return;
+      if (panel?.contains(target) || toggle?.contains(target)) return;
+      handleMenuClose();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [isOpen]);
+
   return (
     <div className={`beatstore-menu-wrapper${isCollided ? " is-collided" : ""}`}>
       {isOpen && (
         <div
           ref={overlayRef}
           className="menu-overlay"
-          onClick={handleMenuClose}
+          onPointerDown={handleMenuClose}
           style={{
             position: "fixed",
             inset: 0,
@@ -60,6 +80,7 @@ export function BeatstoreMenu() {
       )}
       <style>{`
         .beatstore-menu-wrapper .staggered-menu-wrapper.fixed-wrapper { z-index: 10000 !important; }
+        .beatstore-menu-wrapper .staggered-menu-wrapper.fixed-wrapper[data-open] { pointer-events: none !important; }
         .beatstore-menu-wrapper .staggered-menu-header { pointer-events: none !important; z-index: 9999 !important; padding: 1.5rem 2rem; }
         .beatstore-menu-wrapper .sm-toggle {
           pointer-events: auto !important;
@@ -96,15 +117,30 @@ export function BeatstoreMenu() {
           opacity: 0.92;
           transition: color 0.18s ease, text-shadow 0.18s ease, opacity 0.18s ease;
         }
-        .beatstore-menu-wrapper .sm-panel-item:hover,
-        .beatstore-menu-wrapper .sm-panel-item:focus-visible {
-          color: #ffffff;
+        .beatstore-menu-wrapper .sm-panel-item .sm-panel-itemLabel {
+          color: inherit;
+          -webkit-text-fill-color: currentColor;
+        }
+        .beatstore-menu-wrapper .sm-panel-item:hover .sm-panel-itemLabel,
+        .beatstore-menu-wrapper .sm-panel-item:focus-visible .sm-panel-itemLabel {
+          background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          -webkit-text-fill-color: transparent;
           opacity: 1;
-          text-shadow: 0 0 12px rgba(124, 58, 237, 0.55);
+          filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.55));
         }
         .beatstore-menu-wrapper .sm-panel-itemLabel { cursor: pointer; }
         .beatstore-menu-wrapper .sm-panel-itemWrap { padding-bottom: 0.2em; }
-        .beatstore-menu-wrapper .sm-panel-list[data-numbering] .sm-panel-item::after { color: #7c3aed; opacity: var(--sm-num-opacity, 0); }
+        .beatstore-menu-wrapper .sm-panel-list[data-numbering] .sm-panel-item::after {
+          background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          color: transparent;
+          opacity: var(--sm-num-opacity, 0);
+        }
       `}</style>
       <StaggeredMenu
         position="left"

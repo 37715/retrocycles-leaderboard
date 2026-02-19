@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type LeaderboardRow, type Season } from "@/src/lib/types";
 import { SEASONS, getLeaderboardRows, getMatchDetails, getMatchHistory, getRankMeta } from "@/src/lib/rclApi";
 
@@ -42,6 +42,7 @@ const SORTABLE_COLUMNS: Array<[SortKey, string, string]> = [
   ["highScore", "High Score", "high-score-col"],
   ["kd", "K/D", "kd-col"]
 ];
+const SEASON_ORDER: Season[] = ["2026", "2025", "2024", "2023"];
 
 const DEFAULT_COLUMN_VISIBILITY = {
   lastActive: true,
@@ -115,9 +116,9 @@ function formatMatchDuration(totalSeconds?: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
-function getPlayerTotals(player: MatchHistoryDetailTeamPlayer): { kills: number; deaths: number; score: number } {
+function getPlayerTotals(player: MatchHistoryDetailTeamPlayer): { kills: number; deaths: number; score: number; hasData: boolean } {
   const positions = Array.isArray(player.positions) ? player.positions : [];
-  return positions.reduce<{ kills: number; deaths: number; score: number }>(
+  const totals = positions.reduce<{ kills: number; deaths: number; score: number }>(
     (acc, entry) => {
       acc.kills += entry.kills || 0;
       acc.deaths += entry.deaths || 0;
@@ -126,24 +127,30 @@ function getPlayerTotals(player: MatchHistoryDetailTeamPlayer): { kills: number;
     },
     { kills: 0, deaths: 0, score: 0 }
   );
+  return { ...totals, hasData: positions.length > 0 };
+}
+
+function normalizeTeamName(name?: string): string {
+  return String(name || "").toLowerCase().replace("team ", "").trim();
 }
 
 export function LeaderboardApp() {
   const [season, setSeason] = useState<Season>("2026");
   const [region, setRegion] = useState<"combined" | "us" | "eu">("combined");
-  const [search, setSearch] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  const [pageSize, setPageSize] = useState(100);
   const [pageIndex, setPageIndex] = useState(0);
-  const [sorting, setSorting] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "rank", dir: "asc" });
+  const [sorting, setSorting] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "elo", dir: "desc" });
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY);
+  const [transitioning, setTransitioning] = useState(false);
 
   const [isMatchOverlayOpen, setIsMatchOverlayOpen] = useState(false);
   const [matchHistoryRows, setMatchHistoryRows] = useState<Array<{ id: string; date?: string; roundCount?: number; totalTimeSeconds?: number; winner?: string }>>([]);
   const [matchDetails, setMatchDetails] = useState<Record<string, MatchHistoryDetail>>({});
+  const pageSize = 100;
+  const inFlightMatchDetailsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let ignore = false;
@@ -186,9 +193,15 @@ export function LeaderboardApp() {
     };
   }, [isMatchOverlayOpen, matchHistoryRows.length]);
 
+  useEffect(() => {
+    if (!isMatchOverlayOpen || matchHistoryRows.length === 0) return;
+    matchHistoryRows.forEach((match) => {
+      void loadMatchDetails(match.id);
+    });
+  }, [isMatchOverlayOpen, matchHistoryRows]);
+
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let nextRows = rows.filter((row) => (q ? row.name.toLowerCase().includes(q) : true));
+    let nextRows = [...rows];
     nextRows = [...nextRows].sort((a, b) => {
       const av = getSortableValue(a, sorting.key);
       const bv = getSortableValue(b, sorting.key);
@@ -201,13 +214,14 @@ export function LeaderboardApp() {
       return sorting.dir === "asc" ? Number(av) - Number(bv) : Number(bv) - Number(av);
     });
     return nextRows.map((row, index) => ({ ...row, rank: index + 1 }));
-  }, [rows, search, sorting]);
+  }, [rows, sorting]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const clampedPageIndex = Math.min(pageIndex, totalPages - 1);
   const paged = filtered.slice(clampedPageIndex * pageSize, clampedPageIndex * pageSize + pageSize);
 
   const toggleSort = (key: SortKey) => {
+    if (key === "rank") return;
     setSorting((prev) => {
       if (prev.key === key) {
         return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
@@ -218,12 +232,15 @@ export function LeaderboardApp() {
   };
 
   const loadMatchDetails = async (matchId: string) => {
-    if (matchDetails[matchId]) return;
+    if (matchDetails[matchId] || inFlightMatchDetailsRef.current.has(matchId)) return;
+    inFlightMatchDetailsRef.current.add(matchId);
     try {
       const detail = (await getMatchDetails(matchId)) as MatchHistoryDetail;
-      setMatchDetails((prev) => ({ ...prev, [matchId]: detail }));
+      setMatchDetails((prev) => (prev[matchId] ? prev : { ...prev, [matchId]: detail }));
     } catch {
-      setMatchDetails((prev) => ({ ...prev, [matchId]: { teams: [] } }));
+      setMatchDetails((prev) => (prev[matchId] ? prev : { ...prev, [matchId]: { teams: [] } }));
+    } finally {
+      inFlightMatchDetailsRef.current.delete(matchId);
     }
   };
 
@@ -271,9 +288,9 @@ export function LeaderboardApp() {
         <div className="control-group">
           <label className="control-label">season</label>
           <select className="season-select" value={season} onChange={(e) => setSeason(e.target.value as Season)}>
-            {Object.entries(SEASONS).map(([value, config]) => (
+            {SEASON_ORDER.map((value) => (
               <option key={value} value={value}>
-                {config.label}
+                {SEASONS[value].label}
               </option>
             ))}
           </select>
@@ -292,7 +309,18 @@ export function LeaderboardApp() {
         )}
         <div className="control-group">
           <label className="checkbox-container">
-            <input type="checkbox" checked={advanced} onChange={(e) => setAdvanced(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={advanced}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setTransitioning(true);
+                setTimeout(() => {
+                  setAdvanced(next);
+                  setTimeout(() => setTransitioning(false), 50);
+                }, 200);
+              }}
+            />
             <span className="checkmark"></span>
             <span className="control-label">advanced stats</span>
           </label>
@@ -318,6 +346,7 @@ export function LeaderboardApp() {
               {matchHistoryRows.length === 0 && <div className="match-empty">loading matches...</div>}
               {matchHistoryRows.map((match) => {
                 const detail = matchDetails[match.id];
+                const winnerTeam = String(match.winner || "unknown").toLowerCase();
                 return (
                   <div key={match.id} className="match-item">
                     <div className="match-summary">
@@ -327,14 +356,15 @@ export function LeaderboardApp() {
                       <span className="match-sep">|</span>
                       <span className="match-duration">{formatMatchDuration(match.totalTimeSeconds)}</span>
                       <span className="match-sep">|</span>
-                      <span className="match-winner">winner: {String(match.winner || "unknown").toLowerCase()}</span>
+                      <span className="match-winner">
+                        winner:{" "}
+                        <span className="match-winner-team" data-team={winnerTeam}>
+                          {winnerTeam}
+                        </span>
+                      </span>
                     </div>
                     <div className="match-detail-body">
-                      {!detail && (
-                        <button className="match-history-more" type="button" onClick={() => loadMatchDetails(match.id)}>
-                          load details
-                        </button>
-                      )}
+                      {!detail && <div className="match-detail-loading">loading details...</div>}
                       {detail && (
                         <div className="match-table">
                           <div className="match-table-header">
@@ -344,10 +374,14 @@ export function LeaderboardApp() {
                             <span>player score</span>
                             <span>k/d</span>
                           </div>
-                          {(detail.teams || []).map((team, idx) => (
+                          {[...(detail.teams || [])].sort((a, b) => (b.score || 0) - (a.score || 0)).map((team, idx) => {
+                            const teamKey = normalizeTeamName(team.teamName);
+                            return (
                             <div key={`${match.id}-${team.teamName || "team"}-${idx}`}>
-                              <div className="match-table-row match-team-row">
-                                <span className="match-team">{team.teamName || "team"}</span>
+                              <div className="match-table-row match-team-row" data-team={teamKey}>
+                                <span className="match-team" data-team={teamKey}>
+                                  {team.teamName || "team"}
+                                </span>
                                 <span></span>
                                 <span className="match-team-score">{team.score ?? 0}</span>
                                 <span></span>
@@ -355,20 +389,30 @@ export function LeaderboardApp() {
                               </div>
                               {(team.players || []).map((player, playerIdx) => {
                                 const totals = getPlayerTotals(player);
-                                const kd = totals.deaths > 0 ? (totals.kills / totals.deaths).toFixed(2) : `${totals.kills}.00`;
+                                const kd = totals.hasData ? (totals.deaths > 0 ? (totals.kills / totals.deaths).toFixed(2) : `${totals.kills}.00`) : "—";
                                 const name = player.nickname || player.username || "player";
                                 return (
-                                  <div className="match-table-row" key={`${match.id}-${name}-${playerIdx}`}>
+                                  <div className="match-table-row" key={`${match.id}-${name}-${playerIdx}`} data-team={teamKey}>
                                     <span className="match-team"></span>
                                     <span className="match-player">{name}</span>
                                     <span></span>
-                                    <span className="match-player-score">{totals.score}</span>
-                                    <span className="match-player-kd">{kd}</span>
+                                    <span className="match-player-score">{totals.hasData ? totals.score : "—"}</span>
+                                    <span className="match-player-kd">
+                                      {kd}
+                                      {totals.hasData && (
+                                        <span className="match-kd-breakdown">
+                                          <span className="match-kills">{totals.kills}</span>
+                                          <span className="match-kd-sep">/</span>
+                                          <span className="match-deaths">{totals.deaths}</span>
+                                        </span>
+                                      )}
+                                    </span>
                                   </div>
                                 );
                               })}
                             </div>
-                          ))}
+                          );
+                          })}
                         </div>
                       )}
                     </div>
@@ -381,65 +425,29 @@ export function LeaderboardApp() {
       )}
 
       <div className="main-content">
-        <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}`}>
-          <div className="datatable-toolbar">
-            <div className="datatable-toolbar-left">
-              <input className="datatable-search" type="text" placeholder="Filter players..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <div className="datatable-toolbar-right">
-              <label className="datatable-page-size-label">Rows</label>
-              <select
-                className="datatable-page-size"
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPageIndex(0);
-                }}
-              >
-                {[10, 20, 50, 100].map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-              <details className="datatable-columns-menu">
-                <summary>Columns</summary>
-                <div className="datatable-columns-list">
-                  {[
-                    ["lastActive", "last active"],
-                    ["matches", "matches"],
-                    ["winrate", "win rate"],
-                    ["avgPlace", "avg place"],
-                    ["avgScore", "avg score"],
-                    ["highScore", "high score"],
-                    ["kd", "k/d"],
-                    ["tier", "rank"]
-                  ].map(([id, label]) => (
-                    <label key={id}>
-                      <input
-                        type="checkbox"
-                        checked={columnVisibility[id as keyof typeof DEFAULT_COLUMN_VISIBILITY] !== false}
-                        onChange={(e) => setColumnVisibility((prev) => ({ ...prev, [id]: e.target.checked }))}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </details>
-            </div>
-          </div>
-
+          <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}${transitioning ? " transitioning" : ""}`}>
           <div className="leaderboard-header">
             {SORTABLE_COLUMNS.map(([key, label, className]) => (
-              <div
-                key={key}
-                className={`${className} sortable-header ${
-                  columnVisibility[key as keyof typeof DEFAULT_COLUMN_VISIBILITY] === false ? "is-hidden-column" : ""
-                }`}
-                onClick={() => toggleSort(key)}
-              >
-                {label}
-              </div>
+              (() => {
+                const isSortable = key !== "rank";
+                return (
+                  <div
+                    key={key}
+                    className={`${className} ${isSortable ? "sortable-header" : ""} ${sorting.key === key ? "is-active-sort" : ""} ${
+                      columnVisibility[key as keyof typeof DEFAULT_COLUMN_VISIBILITY] === false ? "is-hidden-column" : ""
+                    }`}
+                    onClick={isSortable ? () => toggleSort(key) : undefined}
+                    aria-sort={isSortable ? (sorting.key === key ? (sorting.dir === "asc" ? "ascending" : "descending") : "none") : undefined}
+                  >
+                    <span className="sortable-header-label">{label}</span>
+                    {isSortable && sorting.key === key && (
+                      <span className="sort-indicator active" aria-hidden="true">
+                        {sorting.dir === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()
             ))}
             <div className={`tier-col ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>Rank</div>
           </div>
