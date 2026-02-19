@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "RCL",
   description: "Retrocycles League — leaderboard, mazing, and hub for learning and competing.",
   icons: {
-    icon: "/assets/rcl-icon-square.png"
+    icon: "/icon.svg"
   }
 };
 

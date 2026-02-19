@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SEASONS, getPlayerProfileView, getRankMeta } from "@/src/lib/rclApi";
 import type { ProfileRow, ProfileSummary, Season } from "@/src/lib/types";
+import { PrimaryNav } from "@/src/ui/PrimaryNav";
 
 const DEFAULT_SUMMARY: ProfileSummary = {
   matches: 0,
@@ -69,31 +70,7 @@ export function ProfileApp() {
 
   return (
     <div className="container profile-container">
-      <nav className="nav-menu-container">
-        <ul className="nav-menu">
-          <li className="nav-item">
-            <Link href="/mazing" className="nav-link group">
-              <span className="nav-text">mazing</span>
-              <span className="nav-border-animation"></span>
-              <span className="nav-bg-animation"></span>
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/leaderboard" className="nav-link group">
-              <span className="nav-text">leaderboard</span>
-              <span className="nav-border-animation"></span>
-              <span className="nav-bg-animation"></span>
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/tutorials" className="nav-link group">
-              <span className="nav-text">tutorials</span>
-              <span className="nav-border-animation"></span>
-              <span className="nav-bg-animation"></span>
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      <PrimaryNav active="none" />
 
       <Link href="/leaderboard" className="profile-back">
         ← back to leaderboard

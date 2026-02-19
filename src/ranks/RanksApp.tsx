@@ -8,7 +8,7 @@ const RANKS = [
   { name: "diamond", range: "2100 - 2199 ELO", icon: "/images/ranks/diamond-amethyst-9.svg", className: "rank-diamond" },
   { name: "master", range: "2200 - 2299 ELO", icon: "/images/ranks/master.svg", className: "rank-master" },
   { name: "grandmaster", range: "2300 - 2399 ELO", icon: "/images/ranks/grandmaster.svg", className: "rank-grandmaster" },
-  { name: "legend", range: "2400+ ELO", icon: "/images/ranks/legend.png", className: "rank-legend", legendary: true }
+  { name: "legend", range: "2400+ ELO", icon: "/images/ranks/legend.svg", className: "rank-legend", legendary: true }
 ];
 
 export function RanksApp() {

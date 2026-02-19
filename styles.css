@@ -109,6 +109,126 @@ body {
     text-decoration: none;
 }
 
+.nav-item-dropdown {
+    position: relative;
+    padding-bottom: 0;
+}
+
+.nav-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    min-width: 100%;
+    padding-top: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    display: none;
+    z-index: 120;
+}
+
+.nav-item-dropdown:hover .nav-dropdown-menu {
+    display: block;
+}
+
+.nav-dropdown-link {
+    display: block;
+    width: 100%;
+    margin: 0;
+    background: #0b0b0b;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.nav-dropdown-link + .nav-dropdown-link {
+    margin-top: 0;
+}
+
+.nav-dropdown-link.active {
+    border-color: rgba(168, 85, 247, 0.55);
+    background-color: #1a1322;
+}
+
+.nav-dropdown-link.active .nav-text {
+    background: none;
+    color: #d8b4fe !important;
+    -webkit-text-fill-color: #d8b4fe !important;
+}
+
+.nav-dropdown-link .nav-text {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #e5e7eb;
+    padding: 0.55rem 0.8rem;
+    transition: color 0.2s ease;
+    background: none;
+    -webkit-text-fill-color: #e5e7eb !important;
+}
+
+.nav-dropdown-link .nav-border-animation,
+.nav-dropdown-link .nav-bg-animation {
+    display: none;
+}
+
+.nav-dropdown-link::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #16111d;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.nav-dropdown-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    transform: scaleX(0.35);
+    opacity: 0;
+    transform-origin: center;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.nav-dropdown-link:hover,
+.nav-dropdown-link:focus-visible {
+    border-color: rgba(168, 85, 247, 0.55);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.nav-dropdown-link:hover .nav-text,
+.nav-dropdown-link:focus-visible .nav-text {
+    background: none;
+    color: #f0abfc !important;
+    -webkit-text-fill-color: #f0abfc !important;
+    text-shadow: 0 0 10px rgba(236, 72, 153, 0.35);
+}
+
+.nav-dropdown-link:hover::before,
+.nav-dropdown-link:focus-visible::before {
+    opacity: 1;
+}
+
+.nav-dropdown-link:hover::after,
+.nav-dropdown-link:focus-visible::after {
+    transform: scaleX(1);
+    opacity: 1;
+}
+
 .nav-link.is-disabled {
     cursor: not-allowed;
 }
@@ -322,6 +442,7 @@ body {
     letter-spacing: 0.05em;
     text-transform: lowercase;
 }
+
 
 .theme-toggle {
     position: absolute;
@@ -1618,6 +1739,43 @@ body::-webkit-scrollbar {
     text-transform: lowercase;
 }
 
+.sumobar-popup-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sumobar-popup-id {
+    color: var(--text-primary);
+    font-weight: 600;
+    min-width: 4.5rem;
+}
+
+.sumobar-popup-team {
+    color: #c084fc;
+    text-transform: lowercase;
+}
+
+.sumobar-popup-players {
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+.sumobar-popup-time {
+    color: var(--text-muted);
+}
+
+.sumobar-popup-sep {
+    color: var(--text-muted);
+}
+
 .no-scroll {
     overflow: hidden;
 }
@@ -1684,10 +1842,123 @@ body::-webkit-scrollbar {
     padding: 0.5rem;
 }
 
+.sumobar-search {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--text-primary);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: 'SUSE Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.9rem;
+    min-width: 220px;
+}
+
+.sumobar-search:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.35);
+}
+
 .season-select option:hover,
 .season-select option:focus {
     background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
     color: #ffffff;
+}
+
+.sumobar-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+.sumobar-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.sumobar-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
+    text-transform: lowercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sumobar-table-wrap {
+    overflow-x: auto;
+}
+
+.sumobar-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 980px;
+}
+
+.sumobar-table th,
+.sumobar-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: left;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.sumobar-table th {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+}
+
+.sumobar-player-cell {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.sumobar-state-cell {
+    text-align: center !important;
+    color: var(--text-secondary);
+    padding: 1rem !important;
+}
+
+.sumobar-panel-title {
+    padding: 0.8rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sumobar-match-row,
+.sumobar-state-row {
+    display: grid;
+    grid-template-columns: 90px 90px minmax(220px, 1fr) 110px 170px;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    align-items: center;
+}
+
+.sumobar-state-row {
+    display: block;
+    color: var(--text-muted);
+}
+
+.sumobar-match-id {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.sumobar-match-team {
+    text-transform: lowercase;
+    color: #c084fc;
 }
 
 .toggle-btn, .region-btn {

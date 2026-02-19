@@ -6,6 +6,7 @@ const RANKINGS_API_BASE = "https://corsapi.armanelgtron.tk/rankings";
 const RANKINGS_DATERANGE_URL = `${RANKINGS_API_BASE}/daterange.php`;
 
 const MATCH_HISTORY_BASE_URL = "https://retrocyclesleague.com/api/history";
+const SUMOBAR_API_BASE = "https://retrocyclesleague.com/api/v1/sumobar";
 
 export const SEASONS: Record<Season, { start: string; end: string; apiId: string; label: string }> = {
   "2026": { start: "2026-01-01", end: "2026-12-31", apiId: "tst", label: "Season 4 (2026)" },
@@ -44,7 +45,7 @@ export function getRankMeta(elo: number): { name: string; icon: string; class: s
   if (elo < 2200) return { name: "diamond", icon: "/images/ranks/diamond-amethyst-9.svg", class: "rank-diamond" };
   if (elo < 2300) return { name: "master", icon: "/images/ranks/master.svg", class: "rank-master" };
   if (elo < 2400) return { name: "grandmaster", icon: "/images/ranks/grandmaster.svg", class: "rank-grandmaster" };
-  return { name: "legend", icon: "/images/ranks/legend.png", class: "rank-legend" };
+  return { name: "legend", icon: "/images/ranks/legend.svg", class: "rank-legend" };
 }
 
 function getRankingsUrl(season: Season, region: Region): string | null {
@@ -362,6 +363,159 @@ export interface MatchHistoryListItem {
   roundCount?: number;
   totalTimeSeconds?: number;
   winner?: string;
+}
+
+export interface SumobarPagination {
+  limit: number;
+  offset: number;
+  returned: number;
+}
+
+export interface SumobarLeaderboardRow {
+  rank: number;
+  playerAuth: string;
+  elo: number;
+  matchesPlayed: number;
+  kills: number;
+  deaths: number;
+  avgScore: number | null;
+  avgPosition: number | null;
+  updatedAt: string;
+}
+
+export interface SumobarMatchRow {
+  matchId: string;
+  roundsPlayed: number;
+  winnerTeam: string | null;
+  winnerPlayers: string[];
+  endedAt: string;
+}
+
+export interface SumobarLeaderboardResponse {
+  rows: SumobarLeaderboardRow[];
+  pagination: SumobarPagination;
+}
+
+export interface SumobarMatchesResponse {
+  rows: SumobarMatchRow[];
+  pagination: SumobarPagination;
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeDateTime(value: unknown): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const normalized = raw
+    .replace(" ", "T")
+    .replace(/(\.\d{3})\d+/, "$1")
+    .replace(/([+-]\d{2})$/, "$1:00")
+    .replace(/\+00:00$/, "Z");
+  const date = new Date(normalized);
+  if (!Number.isNaN(date.getTime())) return date.toISOString();
+  return raw;
+}
+
+async function fetchSumobarJson<T>(path: string, params: URLSearchParams): Promise<T> {
+  const url = `${SUMOBAR_API_BASE}${path}?${params.toString()}`;
+  const request = (headers?: HeadersInit) => fetch(url, headers ? { headers } : undefined);
+
+  let response = await request();
+  if ((response.status === 401 || response.status === 403)) {
+    const token = process.env.SUMOBAR_API_TOKEN || process.env.NEXT_PUBLIC_SUMOBAR_API_TOKEN;
+    if (token) {
+      response = await request({ "X-RCL-Sumobar-Token": token });
+      if (response.status === 401 || response.status === 403) {
+        response = await request({ Authorization: `Bearer ${token}` });
+      }
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`sumobar request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
+export async function getSumobarLeaderboard({
+  limit = 50,
+  offset = 0,
+  minMatches = 1
+}: {
+  limit?: number;
+  offset?: number;
+  minMatches?: number;
+}): Promise<SumobarLeaderboardResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    min_matches: String(minMatches)
+  });
+  const payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
+    "/leaderboard",
+    params
+  );
+
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  return {
+    rows: rows.map((row) => ({
+      rank: toNumber(row.rank, 0),
+      playerAuth: String(row.player_auth || ""),
+      elo: toNumber(row.elo, 0),
+      matchesPlayed: toNumber(row.matches_played, 0),
+      kills: toNumber(row.kills, 0),
+      deaths: toNumber(row.deaths, 0),
+      avgScore: toNumberOrNull(row.avg_score),
+      avgPosition: toNumberOrNull(row.avg_position),
+      updatedAt: normalizeDateTime(row.updated_at)
+    })),
+    pagination: {
+      limit: toNumber(payload?.pagination?.limit, limit),
+      offset: toNumber(payload?.pagination?.offset, offset),
+      returned: toNumber(payload?.pagination?.returned, rows.length)
+    }
+  };
+}
+
+export async function getSumobarMatches({
+  limit = 10,
+  offset = 0
+}: {
+  limit?: number;
+  offset?: number;
+}): Promise<SumobarMatchesResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset)
+  });
+  const payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
+    "/matches",
+    params
+  );
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  return {
+    rows: rows.map((row) => ({
+      matchId: String(row.match_id || ""),
+      roundsPlayed: toNumber(row.rounds_played, 0),
+      winnerTeam: row.winner_team === null || row.winner_team === undefined ? null : String(row.winner_team),
+      winnerPlayers: Array.isArray(row.winner_players) ? row.winner_players.map((player) => String(player)) : [],
+      endedAt: normalizeDateTime(row.ended_at)
+    })),
+    pagination: {
+      limit: toNumber(payload?.pagination?.limit, limit),
+      offset: toNumber(payload?.pagination?.offset, offset),
+      returned: toNumber(payload?.pagination?.returned, rows.length)
+    }
+  };
 }
 
 export async function getMatchHistory(mode: Mode = DEFAULT_MODE, page = 1): Promise<MatchHistoryListItem[]> {

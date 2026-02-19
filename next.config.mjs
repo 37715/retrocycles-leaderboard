@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingIncludes: {
+    "/images/[...path]": ["./images/**/*"],
+    "/assets/[...path]": ["./assets/**/*"],
+    "/favicon.svg/route": ["./favicon.svg"]
+  },
   async headers() {
     return [
       {
