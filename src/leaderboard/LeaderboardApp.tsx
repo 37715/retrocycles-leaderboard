@@ -361,7 +361,7 @@ export function LeaderboardApp() {
 
   return (
     <div className="container">
-      <PrimaryNav active="leaderboard" />
+      <PrimaryNav active="leaderboard" leaderboardMode={boardMode} />
 
       <header className="header">
         <div className="title-section">

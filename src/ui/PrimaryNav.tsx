@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-export function PrimaryNav({ active }: { active: "mazing" | "leaderboard" | "tutorials" | "none" }) {
-  const searchParams = useSearchParams();
+export function PrimaryNav({
+  active,
+  leaderboardMode
+}: {
+  active: "mazing" | "leaderboard" | "tutorials" | "none";
+  leaderboardMode?: "tst" | "sumobar";
+}) {
   const is = (name: string) => (active === name ? " active" : "");
-  const leaderboardMode = searchParams.get("mode") === "sumobar" ? "sumobar" : "tst";
   return (
     <nav className="nav-menu-container">
       <ul className="nav-menu">
