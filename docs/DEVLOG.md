@@ -1,5 +1,16 @@
 # Dev Log
 
+## 2026-02-13
+- Standardized feature component naming to page semantics: renamed exports from `LeaderboardApp` -> `LeaderboardPage`, `ProfileApp` -> `ProfilePage`, and `RanksApp` -> `RanksPage` to reflect one unified RCL hub instead of distinct apps.
+- Updated App Router route wrappers (`app/leaderboard/page.tsx`, `app/profile/page.tsx`, `app/ranks/page.tsx`) to import/render the new page-named components and use explicit `*RoutePage` function names for consistency with other route files.
+- Issue encountered: kept existing file paths (`*App.tsx`) unchanged in this pass to avoid broad file-move churn; a follow-up filesystem rename can complete the convention if desired.
+- Fixed leaderboard/profile data regressions in `src/lib/rclApi.ts`: added `changeDate` -> `lastActive` mapping, added `played/matches` fallback win-rate calculation, and made profile loading resilient with `summary` endpoint fallback to leaderboard + matches data.
+- Added match-history resilience in `src/lib/rclApi.ts`: if `/api/v1/matches` or `/api/v1/matches/:id` fails, client now falls back to legacy `https://retrocyclesleague.com/api/history/tst` endpoints to restore overlay data.
+- Restored leaderboard advanced/simple transition behavior in `src/leaderboard/LeaderboardApp.tsx` by reintroducing timed `transitioning` class toggling on advanced toggle changes.
+- Fixed menu/profile UX regressions: `home` sidebar item now links to `https://retrocyclesleague.com` (`src/ui/BeatstoreMenu.tsx`), close/open label animation now runs both directions (`src/ui/StaggeredMenu.tsx`), and username links no longer show underline (`styles.css`).
+- Fixed style collision causing score-font inconsistency by scoping a generic `.score` rule to `.team-result .score` in `styles.css`.
+- Issue encountered: backend currently returns identical payloads for `region=combined|us|eu` from `/api/v1/leaderboard`, so region toggle still cannot produce distinct data client-side until API-side filtering is corrected.
+
 ## 2026-02-12
 - Added `docs/INDEX.md` to establish canonical documentation mapping for leaderboard-related work.
 - Bootstrapped `docs/DEVLOG.md` to track practical implementation changes and blockers.
@@ -53,3 +64,4 @@
 - Restored mazing difficulty gradient accents by adding missing `data-difficulty` attributes in `src/mazing/MazingPage.tsx` on both difficulty buttons and maze cards; this reactivates existing gradient CSS selectors.
 - Updated leaderboard default page size in `src/leaderboard/LeaderboardApp.tsx` from `20` to `100`.
 - Tuned mazing difficulty button selected-state styling for black backgrounds in `styles.css`: removed heavy active fill overlay, kept hover tint softer, and switched active to a cleaner dark selected treatment (stronger border + subtle inset ring).
+- Fixed contrast regression for selected/hovered difficulty labels on black buttons in `styles.css` by overriding global `.group .nav-text` dark-mode inversion specifically for `.difficulty-nav-menu` so text remains light (`#f5f7fb`) in active and hover states.

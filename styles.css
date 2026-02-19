@@ -1306,6 +1306,7 @@ body[data-rank="legend"] .profile-card::after {
 .profile-link {
     cursor: pointer;
     transition: opacity 0.2s ease;
+    text-decoration: none;
 }
 
 .profile-link:hover {
@@ -2724,7 +2725,7 @@ a.tier:hover {
     font-size: 0.9rem;
 }
 
-.score {
+.team-result .score {
     font-family: 'SUSE Mono', monospace;
     color: var(--text-secondary);
     font-size: 0.8rem;

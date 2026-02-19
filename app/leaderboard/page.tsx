@@ -1,5 +1,5 @@
-import { LeaderboardApp } from "@/src/leaderboard/LeaderboardApp";
+import { LeaderboardPage } from "@/src/leaderboard/LeaderboardApp";
 
-export default function LeaderboardPage() {
-  return <LeaderboardApp />;
+export default function LeaderboardRoutePage() {
+  return <LeaderboardPage />;
 }

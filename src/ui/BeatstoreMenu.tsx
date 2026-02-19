@@ -11,7 +11,7 @@ export function BeatstoreMenu() {
   const router = useRouter();
 
   const menuItems = [
-    { label: "home", link: "/leaderboard", ariaLabel: "Home" },
+    { label: "home", link: "https://retrocyclesleague.com", ariaLabel: "Home" },
     { label: "hub", link: "/", ariaLabel: "Hub" },
     { label: "about", link: "/about", ariaLabel: "About" },
     { label: "support", link: "/support", ariaLabel: "Support" }

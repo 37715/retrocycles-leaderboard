@@ -1,5 +1,5 @@
-import { RanksApp } from "@/src/ranks/RanksApp";
+import { RanksPage } from "@/src/ranks/RanksApp";
 
-export default function RanksPage() {
-  return <RanksApp />;
+export default function RanksRoutePage() {
+  return <RanksPage />;
 }

@@ -17,7 +17,7 @@ const DEFAULT_SUMMARY: ProfileSummary = {
   latestOnline: "—"
 };
 
-export function ProfileApp() {
+export function ProfilePage() {
   const params = useSearchParams();
   const username = params.get("user") || params.get("username") || "";
   const [season, setSeason] = useState<Season>("2026");

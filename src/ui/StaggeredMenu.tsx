@@ -115,8 +115,11 @@ export default function StaggeredMenu({
       });
     }
     if (textInnerRef.current) {
-      gsap.set(textInnerRef.current, { yPercent: 0 });
-      gsap.to(textInnerRef.current, { yPercent: target ? -50 : 0, duration: 0.45, ease: "power4.out" });
+      gsap.to(textInnerRef.current, {
+        yPercent: target ? -50 : 0,
+        duration: target ? 0.45 : 0.35,
+        ease: target ? "power4.out" : "power3.inOut"
+      });
     }
   }, [changeMenuColorOnOpen, menuButtonColor, onMenuClose, onMenuOpen, openMenuButtonColor, playClose, playOpen]);
 

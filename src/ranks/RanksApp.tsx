@@ -11,7 +11,7 @@ const RANKS = [
   { name: "legend", range: "2400+ ELO", icon: "/images/ranks/legend.png", className: "rank-legend", legendary: true }
 ];
 
-export function RanksApp() {
+export function RanksPage() {
   return (
     <div className="container">
       <div className="back-button-container">

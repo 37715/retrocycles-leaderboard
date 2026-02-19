@@ -22,7 +22,9 @@ interface ApiLeaderboardRow {
   lastActiveLabel?: string;
   lastActive?: string;
   lastActiveAt?: string;
+  changeDate?: string;
   matches?: number;
+  played?: number;
   numPlay?: number;
   winRate?: number;
   winrate?: number;
@@ -89,6 +91,10 @@ interface ApiErrorResponse {
   };
 }
 
+interface MatchHistoryLegacyListPayload {
+  matches?: MatchHistoryListItem[];
+}
+
 function formatMatchTimestamp(isoString?: string): string {
   if (!isoString) return "unknown time";
   const date = new Date(isoString);
@@ -138,6 +144,14 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
+  try {
+    return await fetchJson<T>(url);
+  } catch {
+    return null;
+  }
+}
+
 export function getRankMeta(elo: number): { name: string; icon: string; class: string } {
   if (elo < 1400) return { name: "bronze", icon: "/images/ranks/bronze.svg", class: "rank-bronze" };
   if (elo < 1600) return { name: "silver", icon: "/images/ranks/silver.svg", class: "rank-silver" };
@@ -154,8 +168,15 @@ function normalizeLeaderboardEntry(entry: ApiLeaderboardRow, fallbackRank: numbe
   const elo = Number(entry.rating ?? entry.elo ?? 1500);
   const latestChange = Number(entry.latestChange ?? entry.change ?? 0);
   const matches = Number(entry.matches ?? entry.numPlay ?? 0);
+  const played = Number(entry.played ?? 0);
   const winrateRaw = entry.winRate ?? entry.winrate ?? 0;
-  const winrate = Number(winrateRaw) > 1 ? Number(winrateRaw) / 100 : Number(winrateRaw || 0);
+  let winrate = Number(winrateRaw) > 1 ? Number(winrateRaw) / 100 : Number(winrateRaw || 0);
+  if ((!Number.isFinite(winrate) || winrate <= 0) && matches > 0 && played > 0 && played <= matches) {
+    // Fallback when API omits explicit winRate but returns wins/played counts.
+    winrate = played / matches;
+  }
+  if (!Number.isFinite(winrate) || winrate < 0) winrate = 0;
+  if (winrate > 1) winrate = 1;
   const avgPlace = Number(entry.avgPlace ?? entry.averagePlace ?? 0);
   const avgScore = Number(entry.avgScore ?? entry.averageScore ?? 0);
   const highScore = Number(entry.highScore ?? entry.bestScore ?? 0);
@@ -171,7 +192,7 @@ function normalizeLeaderboardEntry(entry: ApiLeaderboardRow, fallbackRank: numbe
     name,
     elo,
     latestChange,
-    lastActive: entry.lastActiveLabel || entry.lastActive || relativeFromIso(entry.lastActiveAt),
+    lastActive: entry.lastActiveLabel || entry.lastActive || entry.changeDate || relativeFromIso(entry.lastActiveAt),
     matches,
     winrate,
     avgPlace,
@@ -246,8 +267,8 @@ export async function getPlayerProfileView({
   const matchesParams = new URLSearchParams({ season, mode, region, page: "1", pageSize: "200" });
 
   const [summaryPayload, matchesPayload] = await Promise.all([
-    fetchJson<ApiSummary>(`${RCL_API_BASE}/players/${encodeURIComponent(username)}/summary?${summaryParams.toString()}`),
-    fetchJson<ApiEnvelope<ApiMatchRow>>(`${RCL_API_BASE}/players/${encodeURIComponent(username)}/matches?${matchesParams.toString()}`)
+    fetchJsonOrNull<ApiSummary>(`${RCL_API_BASE}/players/${encodeURIComponent(username)}/summary?${summaryParams.toString()}`),
+    fetchJsonOrNull<ApiEnvelope<ApiMatchRow>>(`${RCL_API_BASE}/players/${encodeURIComponent(username)}/matches?${matchesParams.toString()}`)
   ]);
 
   const rows = mapRclMatchesToProfileRows(Array.isArray(matchesPayload?.data) ? matchesPayload.data : []);
@@ -273,10 +294,33 @@ export async function getPlayerProfileView({
     latestOnline: summaryPayload?.lastOnlineAt ? formatMatchTimestamp(summaryPayload.lastOnlineAt) : "—"
   };
 
+  let leaderboardRank = summaryPayload?.leaderboardRank ?? null;
+  if (leaderboardRank === null || summary.latestElo === null || summary.latestOnline === "—") {
+    const leaderboardRows = await fetchJsonOrNull<ApiEnvelope<ApiLeaderboardRow>>(
+      `${RCL_API_BASE}/leaderboard?${new URLSearchParams({
+        season,
+        mode,
+        region,
+        page: "1",
+        pageSize: "500"
+      }).toString()}`
+    );
+    const normalizedRows = Array.isArray(leaderboardRows?.data)
+      ? leaderboardRows.data.map((entry, index) => normalizeLeaderboardEntry(entry, index + 1))
+      : [];
+    const current = normalizedRows.find((row) => row.name.toLowerCase() === username.toLowerCase());
+    if (current) {
+      leaderboardRank = current.rank;
+      if (summary.latestElo === null) summary.latestElo = current.elo;
+      if (summary.latestOnline === "—") summary.latestOnline = current.lastActive;
+      if (!summary.winRate && current.winrate > 0) summary.winRate = Math.round(current.winrate * 100);
+    }
+  }
+
   return {
     rows,
     summary,
-    leaderboardRank: summaryPayload?.leaderboardRank ?? null
+    leaderboardRank
   };
 }
 
@@ -290,12 +334,18 @@ export interface MatchHistoryListItem {
 
 export async function getMatchHistory(mode: Mode = DEFAULT_MODE, page = 1): Promise<MatchHistoryListItem[]> {
   const params = new URLSearchParams({ mode, page: String(page), pageSize: "20" });
-  const payload = await fetchJson<ApiEnvelope<MatchHistoryListItem>>(`${RCL_API_BASE}/matches?${params.toString()}`);
-  return Array.isArray(payload?.data) ? payload.data : [];
+  const payload = await fetchJsonOrNull<ApiEnvelope<MatchHistoryListItem>>(`${RCL_API_BASE}/matches?${params.toString()}`);
+  if (Array.isArray(payload?.data)) return payload.data;
+
+  // Fallback for legacy history endpoint still used by backend infra.
+  const legacyPayload = await fetchJsonOrNull<MatchHistoryLegacyListPayload>(`https://retrocyclesleague.com/api/history/${mode}?page=${page}`);
+  return Array.isArray(legacyPayload?.matches) ? legacyPayload.matches : [];
 }
 
 export async function getMatchDetails(matchId: string): Promise<unknown> {
-  return fetchJson<unknown>(`${RCL_API_BASE}/matches/${encodeURIComponent(matchId)}`);
+  const details = await fetchJsonOrNull<unknown>(`${RCL_API_BASE}/matches/${encodeURIComponent(matchId)}`);
+  if (details) return details;
+  return fetchJson<unknown>(`https://retrocyclesleague.com/api/history/${DEFAULT_MODE}?id=${encodeURIComponent(matchId)}`);
 }
 
 export function getRclApiBase(): string {

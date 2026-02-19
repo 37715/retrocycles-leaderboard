@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type LeaderboardRow, type Season } from "@/src/lib/types";
 import { SEASONS, getLeaderboardRows, getMatchDetails, getMatchHistory, getRankMeta } from "@/src/lib/rclApi";
 
@@ -128,11 +128,12 @@ function getPlayerTotals(player: MatchHistoryDetailTeamPlayer): { kills: number;
   );
 }
 
-export function LeaderboardApp() {
+export function LeaderboardPage() {
   const [season, setSeason] = useState<Season>("2026");
   const [region, setRegion] = useState<"combined" | "us" | "eu">("combined");
   const [search, setSearch] = useState("");
   const [advanced, setAdvanced] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [pageSize, setPageSize] = useState(100);
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "rank", dir: "asc" });
@@ -144,6 +145,7 @@ export function LeaderboardApp() {
   const [isMatchOverlayOpen, setIsMatchOverlayOpen] = useState(false);
   const [matchHistoryRows, setMatchHistoryRows] = useState<Array<{ id: string; date?: string; roundCount?: number; totalTimeSeconds?: number; winner?: string }>>([]);
   const [matchDetails, setMatchDetails] = useState<Record<string, MatchHistoryDetail>>({});
+  const didMountRef = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -170,6 +172,16 @@ export function LeaderboardApp() {
   useEffect(() => {
     if (season === "2023") setRegion("combined");
   }, [season]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    setIsTransitioning(true);
+    const timer = window.setTimeout(() => setIsTransitioning(false), 260);
+    return () => window.clearTimeout(timer);
+  }, [advanced]);
 
   useEffect(() => {
     if (!isMatchOverlayOpen || matchHistoryRows.length > 0) return;
@@ -381,7 +393,7 @@ export function LeaderboardApp() {
       )}
 
       <div className="main-content">
-        <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}`}>
+        <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"} ${isTransitioning ? "transitioning" : ""}`}>
           <div className="datatable-toolbar">
             <div className="datatable-toolbar-left">
               <input className="datatable-search" type="text" placeholder="Filter players..." value={search} onChange={(e) => setSearch(e.target.value)} />
