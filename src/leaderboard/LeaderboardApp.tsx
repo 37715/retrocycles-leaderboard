@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type LeaderboardRow, type Season } from "@/src/lib/types";
+import { type LeaderboardRow, type Region, type Season } from "@/src/lib/types";
 import { PrimaryNav } from "@/src/ui/PrimaryNav";
 import {
   SEASONS,
@@ -19,6 +19,7 @@ import {
 } from "@/src/lib/rclApi";
 
 type SortKey = "rank" | "name" | "elo" | "latestChange" | "lastActive" | "matches" | "winrate" | "avgPlace" | "avgScore" | "highScore" | "kd";
+type SumobarSortKey = "rank" | "player" | "elo" | "kills" | "lastActive" | "matches" | "deaths" | "avgPosition" | "avgScore" | "kdDiff" | "kd";
 
 interface MatchHistoryDetailTeamPlayerPosition {
   kills?: number;
@@ -109,6 +110,37 @@ function getSortableValue(player: LeaderboardRow, key: SortKey): number | string
   }
 }
 
+function getSumobarSortableValue(player: SumobarLeaderboardRow, key: SumobarSortKey): number | string {
+  switch (key) {
+    case "rank":
+      return player.rank || 0;
+    case "player":
+      return player.playerAuth.toLowerCase();
+    case "elo":
+      return player.elo;
+    case "kills":
+      return player.kills;
+    case "lastActive": {
+      const ts = new Date(player.updatedAt || "").getTime();
+      return Number.isNaN(ts) ? 0 : ts;
+    }
+    case "matches":
+      return player.matchesPlayed;
+    case "deaths":
+      return player.deaths;
+    case "avgPosition":
+      return player.avgPosition ?? Number.POSITIVE_INFINITY;
+    case "avgScore":
+      return player.avgScore ?? Number.NEGATIVE_INFINITY;
+    case "kdDiff":
+      return player.kills - player.deaths;
+    case "kd":
+      return player.kills / Math.max(player.deaths, 1);
+    default:
+      return 0;
+  }
+}
+
 function formatMatchTimestamp(isoString?: string): string {
   if (!isoString) return "unknown time";
   const date = new Date(isoString);
@@ -163,6 +195,89 @@ function formatDateTime(value?: string): string {
     .toLowerCase();
 }
 
+function formatLastActive(value?: string): string {
+  if (!value) return "unknown";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "unknown";
+
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs <= 0) return "just now";
+
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function getEstimatedPlacementRates(avgPosition: number | null, matchesPlayed: number): number[] {
+  const rates = Array.from({ length: 8 }, () => 0);
+  const safeAvg = avgPosition && avgPosition > 0 ? Math.min(8, Math.max(1, avgPosition)) : 4.5;
+  const safeMatches = Math.max(0, Math.floor(matchesPlayed));
+
+  // With no matches data, show a neutral center split.
+  if (safeMatches <= 0) {
+    rates[3] = 50;
+    rates[4] = 50;
+    return rates;
+  }
+
+  // One match must map to one exact finishing position.
+  if (safeMatches === 1) {
+    const placeIndex = Math.min(7, Math.max(0, Math.round(safeAvg) - 1));
+    rates[placeIndex] = 100;
+    return rates;
+  }
+
+  // For aggregated data without true place counts, distribute only between nearest buckets
+  // and quantize by match count so slices are realistic.
+  const lowPlace = Math.floor(safeAvg);
+  const highPlace = Math.ceil(safeAvg);
+  const lowIndex = Math.min(7, Math.max(0, lowPlace - 1));
+  const highIndex = Math.min(7, Math.max(0, highPlace - 1));
+
+  if (lowIndex === highIndex) {
+    rates[lowIndex] = 100;
+    return rates;
+  }
+
+  const highWeight = safeAvg - lowPlace;
+  const lowWeight = 1 - highWeight;
+  const lowCount = Math.max(0, Math.min(safeMatches, Math.round(lowWeight * safeMatches)));
+  const highCount = safeMatches - lowCount;
+
+  rates[lowIndex] = (lowCount / safeMatches) * 100;
+  rates[highIndex] = (highCount / safeMatches) * 100;
+  return rates;
+}
+
+function getSumobarMatchesGradient(placementRates: number[] | null, avgPosition: number | null, matchesPlayed: number): string {
+  const palette = ["#22c55e", "#84cc16", "#eab308", "#facc15", "#fb923c", "#f97316", "#ef4444", "#dc2626"];
+  const rates = placementRates && placementRates.length === 8 ? placementRates : getEstimatedPlacementRates(avgPosition, matchesPlayed);
+  let cursor = 0;
+  const segments: string[] = ["90deg"];
+
+  rates.forEach((rate, idx) => {
+    const color = palette[idx];
+    const start = Math.max(0, Math.min(100, cursor));
+    const end = Math.max(0, Math.min(100, cursor + rate));
+    segments.push(`${color} ${start.toFixed(2)}%`);
+    segments.push(`${color} ${end.toFixed(2)}%`);
+    cursor = end;
+  });
+  if (cursor < 100) {
+    const last = palette[palette.length - 1];
+    segments.push(`${last} ${cursor.toFixed(2)}%`);
+    segments.push(`${last} 100%`);
+  }
+
+  return `linear-gradient(${segments.join(", ")})`;
+}
+
 function shortMatchId(matchId: string): string {
   if (!matchId) return "-";
   return matchId.length > 8 ? `${matchId.slice(0, 8)}…` : matchId;
@@ -172,7 +287,7 @@ export function LeaderboardApp() {
   const searchParams = useSearchParams();
   const [boardMode, setBoardMode] = useState<BoardMode>("tst");
   const [season, setSeason] = useState<Season>("2026");
-  const [region, setRegion] = useState<"combined" | "us" | "eu">("combined");
+  const [region, setRegion] = useState<Region>("combined");
   const [advanced, setAdvanced] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [sorting, setSorting] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "elo", dir: "desc" });
@@ -192,6 +307,7 @@ export function LeaderboardApp() {
   const [sumobarPagination, setSumobarPagination] = useState<SumobarPagination>({ limit: 50, offset: 0, returned: 0 });
   const [sumobarLoading, setSumobarLoading] = useState(false);
   const [sumobarError, setSumobarError] = useState("");
+  const [sumobarSorting, setSumobarSorting] = useState<{ key: SumobarSortKey; dir: "asc" | "desc" }>({ key: "elo", dir: "desc" });
   const [sumobarMatches, setSumobarMatches] = useState<SumobarMatchRow[]>([]);
   const [sumobarMatchesLoading, setSumobarMatchesLoading] = useState(false);
   const [sumobarMatchesError, setSumobarMatchesError] = useState("");
@@ -314,7 +430,7 @@ export function LeaderboardApp() {
     setSumobarLoading(true);
     setSumobarError("");
     try {
-      const payload = await getSumobarLeaderboard({ limit: 50, offset: 0, minMatches: 1 });
+      const payload = await getSumobarLeaderboard({ limit: 50, offset: 0, minMatches: 1, region });
       setSumobarRows(payload.rows);
       setSumobarPagination(payload.pagination);
     } catch (err) {
@@ -349,7 +465,7 @@ export function LeaderboardApp() {
   useEffect(() => {
     if (boardMode !== "sumobar") return;
     refreshSumobar();
-  }, [boardMode]);
+  }, [boardMode, region]);
 
   useEffect(() => {
     if (boardMode !== "sumobar") return;
@@ -357,7 +473,34 @@ export function LeaderboardApp() {
       refreshSumobar();
     }, 30000);
     return () => window.clearInterval(interval);
-  }, [boardMode]);
+  }, [boardMode, region]);
+
+  const filteredSumobarRows = useMemo(() => {
+    if (region === "combined") return sumobarRows;
+    return sumobarRows.filter((row) => !row.region || row.region === region);
+  }, [sumobarRows, region]);
+
+  const sortedSumobarRows = useMemo(() => {
+    const nextRows = [...filteredSumobarRows];
+    nextRows.sort((a, b) => {
+      const av = getSumobarSortableValue(a, sumobarSorting.key);
+      const bv = getSumobarSortableValue(b, sumobarSorting.key);
+      if (typeof av === "string" && typeof bv === "string") {
+        return sumobarSorting.dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return sumobarSorting.dir === "asc" ? Number(av) - Number(bv) : Number(bv) - Number(av);
+    });
+    return nextRows;
+  }, [filteredSumobarRows, sumobarSorting]);
+
+  const toggleSumobarSort = (key: SumobarSortKey) => {
+    setSumobarSorting((prev) => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      }
+      return { key, dir: key === "player" || key === "avgPosition" ? "asc" : "desc" };
+    });
+  };
 
   return (
     <div className="container">
@@ -427,6 +570,34 @@ export function LeaderboardApp() {
         )}
         {boardMode === "sumobar" && (
           <>
+            <div className="control-group">
+              <label className="control-label">region</label>
+              <div className="region-toggle">
+                {(["combined", "us", "eu"] as const).map((value) => (
+                  <button key={value} type="button" className={`region-btn ${region === value ? "active" : ""}`} onClick={() => setRegion(value)}>
+                    {value.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="control-group">
+              <label className="checkbox-container">
+                <input
+                  type="checkbox"
+                  checked={advanced}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setTransitioning(true);
+                    setTimeout(() => {
+                      setAdvanced(next);
+                      setTimeout(() => setTransitioning(false), 50);
+                    }, 200);
+                  }}
+                />
+                <span className="checkmark"></span>
+                <span className="control-label">advanced stats</span>
+              </label>
+            </div>
             <div className="control-group">
               <button className="match-history-btn" type="button" onClick={refreshSumobar}>
                 refresh
@@ -681,78 +852,168 @@ export function LeaderboardApp() {
         )}
 
         {boardMode === "sumobar" && (
-          <div className="sumobar-layout">
-            <section className="sumobar-panel">
-              <div className="sumobar-meta">
-                <span>showing {sumobarRows.length} players</span>
-                <span>api rows: {sumobarPagination.returned}</span>
+          <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}${transitioning ? " transitioning" : ""}`}>
+            <div className="leaderboard-header">
+              <div
+                className={`rank-col sortable-header ${sumobarSorting.key === "rank" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("rank")}
+                aria-sort={sumobarSorting.key === "rank" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">#</span>
+                {sumobarSorting.key === "rank" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
               </div>
-              <div className="sumobar-table-wrap">
-                <table className="sumobar-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Player</th>
-                      <th>Elo</th>
-                      <th>Matches</th>
-                      <th>Kills</th>
-                      <th>Deaths</th>
-                      <th>K/D</th>
-                      <th>Avg Score</th>
-                      <th>Avg Position</th>
-                      <th>Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sumobarLoading && (
-                      <tr>
-                        <td colSpan={10} className="sumobar-state-cell">
-                          loading sumobar leaderboard...
-                        </td>
-                      </tr>
-                    )}
-                    {!sumobarLoading && sumobarError && (
-                      <tr>
-                        <td colSpan={10} className="sumobar-state-cell">
-                          {sumobarError}
-                        </td>
-                      </tr>
-                    )}
-                    {!sumobarLoading && !sumobarError && sumobarRows.length === 0 && (
-                      <tr>
-                        <td colSpan={10} className="sumobar-state-cell">
-                          no players found
-                        </td>
-                      </tr>
-                    )}
-                    {!sumobarLoading &&
-                      !sumobarError &&
-                      sumobarRows.map((row) => {
-                        const kd = (row.kills / Math.max(row.deaths, 1)).toFixed(2);
-                        return (
-                          <tr key={row.playerAuth}>
-                            <td>{row.rank}</td>
-                            <td className="sumobar-player-cell">{row.playerAuth}</td>
-                            <td>{row.elo}</td>
-                            <td>{row.matchesPlayed}</td>
-                            <td>{row.kills}</td>
-                            <td>{row.deaths}</td>
-                            <td>{kd}</td>
-                            <td>{row.avgScore === null ? "-" : row.avgScore.toFixed(1)}</td>
-                            <td>{row.avgPosition === null ? "-" : row.avgPosition.toFixed(2)}</td>
-                            <td>{formatDateTime(row.updatedAt)}</td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
+              <div
+                className={`player-col sortable-header ${sumobarSorting.key === "player" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("player")}
+                aria-sort={sumobarSorting.key === "player" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Player</span>
+                {sumobarSorting.key === "player" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
               </div>
-            </section>
+              <div
+                className={`rating-col sortable-header ${sumobarSorting.key === "elo" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("elo")}
+                aria-sort={sumobarSorting.key === "elo" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Rating</span>
+                {sumobarSorting.key === "elo" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`change-col sortable-header ${columnVisibility.lastActive === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kills" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("kills")}
+                aria-sort={sumobarSorting.key === "kills" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Kills</span>
+                {sumobarSorting.key === "kills" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`activity-col sortable-header ${columnVisibility.lastActive === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "lastActive" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("lastActive")}
+                aria-sort={sumobarSorting.key === "lastActive" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Last Active</span>
+                {sumobarSorting.key === "lastActive" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`matches-col sortable-header ${columnVisibility.matches === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "matches" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("matches")}
+                aria-sort={sumobarSorting.key === "matches" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Matches</span>
+                {sumobarSorting.key === "matches" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`winrate-col sortable-header ${columnVisibility.winrate === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "deaths" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("deaths")}
+                aria-sort={sumobarSorting.key === "deaths" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Deaths</span>
+                {sumobarSorting.key === "deaths" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`avg-place-col sortable-header ${columnVisibility.avgPlace === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "avgPosition" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("avgPosition")}
+                aria-sort={sumobarSorting.key === "avgPosition" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Avg Pos</span>
+                {sumobarSorting.key === "avgPosition" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`avg-score-col sortable-header ${columnVisibility.avgScore === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "avgScore" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("avgScore")}
+                aria-sort={sumobarSorting.key === "avgScore" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">Avg Score</span>
+                {sumobarSorting.key === "avgScore" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`high-score-col sortable-header ${columnVisibility.highScore === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kdDiff" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("kdDiff")}
+                aria-sort={sumobarSorting.key === "kdDiff" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">K-D Diff</span>
+                {sumobarSorting.key === "kdDiff" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div
+                className={`kd-col sortable-header ${columnVisibility.kd === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kd" ? "is-active-sort" : ""}`}
+                onClick={() => toggleSumobarSort("kd")}
+                aria-sort={sumobarSorting.key === "kd" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
+              >
+                <span className="sortable-header-label">K/D</span>
+                {sumobarSorting.key === "kd" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
+              </div>
+              <div className={`tier-col ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>Rank</div>
+            </div>
+            <div className="leaderboard-content" id="sumobar-leaderboard">
+              {sumobarLoading && (
+                <div className="loading-container">
+                  <div className="loading-text">loading sumobar leaderboard...</div>
+                </div>
+              )}
+              {!sumobarLoading && sumobarError && (
+                <div className="loading-container">
+                  <div className="loading-text">{sumobarError}</div>
+                </div>
+              )}
+              {!sumobarLoading && !sumobarError && sortedSumobarRows.length === 0 && (
+                <div className="loading-container">
+                  <div className="loading-text">no players found</div>
+                </div>
+              )}
+              {!sumobarLoading &&
+                !sumobarError &&
+                sortedSumobarRows.map((row) => {
+                  const rankMeta = getRankMeta(row.elo || 1500);
+                  const kd = (row.kills / Math.max(row.deaths, 1)).toFixed(2);
+                  const kdDiff = row.kills - row.deaths;
+                  return (
+                    <div key={`${row.playerAuth}-${row.rank}`} className={`leaderboard-entry rank-tint-${rankMeta.class}`}>
+                      <div className="rank-position">{row.rank}</div>
+                      <div className="player">
+                        <span className="username">{row.playerAuth}</span>
+                      </div>
+                      <div className="rating">{row.elo}</div>
+                      <div className={`change ${columnVisibility.lastActive === false ? "is-hidden-column" : ""}`}>{row.kills}</div>
+                      <div className={`last-active ${columnVisibility.lastActive === false ? "is-hidden-column" : ""}`}>{formatLastActive(row.updatedAt)}</div>
+                      <div className={`matches ${columnVisibility.matches === false ? "is-hidden-column" : ""}`}>
+                        <div className="winrate-bar">
+                          <div
+                            className="winrate-fill"
+                            style={{
+                              width: "100%",
+                              background: getSumobarMatchesGradient(row.placementRates, row.avgPosition, row.matchesPlayed)
+                            }}
+                          />
+                        </div>
+                        <span className="matches-count">{row.matchesPlayed}</span>
+                      </div>
+                      <div className={`percentage ${columnVisibility.winrate === false ? "is-hidden-column" : ""}`}>{row.deaths}</div>
+                      <div className={`stat avg-place ${columnVisibility.avgPlace === false ? "is-hidden-column" : ""}`}>
+                        {row.avgPosition === null ? "-" : row.avgPosition.toFixed(2)}
+                      </div>
+                      <div className={`score avg-score-cell ${columnVisibility.avgScore === false ? "is-hidden-column" : ""}`}>
+                        {row.avgScore === null ? "-" : row.avgScore.toFixed(1)}
+                      </div>
+                      <div className={`score high-score ${columnVisibility.highScore === false ? "is-hidden-column" : ""}`}>
+                        {kdDiff >= 0 ? "+" : ""}
+                        {kdDiff}
+                      </div>
+                      <div className={`kd ${columnVisibility.kd === false ? "is-hidden-column" : ""}`}>{kd}</div>
+                      <Link href="/ranks" className={`tier ${rankMeta.class} ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>
+                        <img className="rank-icon" src={rankMeta.icon} alt={rankMeta.name} />
+                        <span className="rank-name">{rankMeta.name}</span>
+                      </Link>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
         )}
       </div>
 
-      <p className="leaderboard-data-credit">data gracefully provided by Nanu and Nelg</p>
+      <p className="leaderboard-data-credit">
+        {boardMode === "sumobar" ? "data provided by RCL" : "data gracefully provided by Nanu and Nelg"}
+      </p>
     </div>
   );
 }

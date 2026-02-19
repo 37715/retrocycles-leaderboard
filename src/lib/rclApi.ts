@@ -45,7 +45,7 @@ export function getRankMeta(elo: number): { name: string; icon: string; class: s
   if (elo < 2200) return { name: "diamond", icon: "/images/ranks/diamond-amethyst-9.svg", class: "rank-diamond" };
   if (elo < 2300) return { name: "master", icon: "/images/ranks/master.svg", class: "rank-master" };
   if (elo < 2400) return { name: "grandmaster", icon: "/images/ranks/grandmaster.svg", class: "rank-grandmaster" };
-  return { name: "legend", icon: "/images/ranks/legend.svg", class: "rank-legend" };
+  return { name: "legend", icon: "/images/ranks/legend.png", class: "rank-legend" };
 }
 
 function getRankingsUrl(season: Season, region: Region): string | null {
@@ -374,12 +374,14 @@ export interface SumobarPagination {
 export interface SumobarLeaderboardRow {
   rank: number;
   playerAuth: string;
+  region: string | null;
   elo: number;
   matchesPlayed: number;
   kills: number;
   deaths: number;
   avgScore: number | null;
   avgPosition: number | null;
+  placementRates: number[] | null;
   updatedAt: string;
 }
 
@@ -410,6 +412,62 @@ function toNumberOrNull(value: unknown): number | null {
 function toNumber(value: unknown, fallback = 0): number {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function toPercentages(values: number[], matchesPlayed: number): number[] | null {
+  if (values.length !== 8 || values.every((value) => value <= 0)) return null;
+  const sum = values.reduce((acc, value) => acc + value, 0);
+  if (sum <= 0) return null;
+
+  // Fractions (0..1)
+  if (sum <= 1.001) return values.map((value) => Math.max(0, value * 100));
+  // Already percentages (roughly 0..100 total)
+  if (sum <= 100.5) return values.map((value) => Math.max(0, value));
+  // Raw counts where total ~= matches played
+  if (matchesPlayed > 0 && sum <= matchesPlayed + 1) {
+    return values.map((value) => Math.max(0, (value / matchesPlayed) * 100));
+  }
+  // Fallback: normalize whatever shape we got into 100%.
+  return values.map((value) => Math.max(0, (value / sum) * 100));
+}
+
+function extractPlacementRates(row: Record<string, unknown>, matchesPlayed: number): number[] | null {
+  const values: number[] = [];
+  for (let place = 1; place <= 8; place += 1) {
+    const candidates = [
+      `place_${place}_rate`,
+      `place${place}_rate`,
+      `position_${place}_rate`,
+      `position${place}_rate`,
+      `pos_${place}_rate`,
+      `pos${place}_rate`,
+      `p${place}_rate`,
+      `place_${place}_count`,
+      `place${place}_count`,
+      `position_${place}_count`,
+      `position${place}_count`,
+      `pos_${place}_count`,
+      `pos${place}_count`,
+      `p${place}_count`,
+      `place_${place}`,
+      `place${place}`,
+      `position_${place}`,
+      `position${place}`,
+      `pos_${place}`,
+      `pos${place}`,
+      `p${place}`
+    ];
+    let numericValue: number | null = null;
+    for (const key of candidates) {
+      const candidate = toNumberOrNull(row[key]);
+      if (candidate !== null) {
+        numericValue = candidate;
+        break;
+      }
+    }
+    values.push(numericValue ?? 0);
+  }
+  return toPercentages(values, matchesPlayed);
 }
 
 function normalizeDateTime(value: unknown): string {
@@ -449,17 +507,22 @@ async function fetchSumobarJson<T>(path: string, params: URLSearchParams): Promi
 export async function getSumobarLeaderboard({
   limit = 50,
   offset = 0,
-  minMatches = 1
+  minMatches = 1,
+  region = "combined"
 }: {
   limit?: number;
   offset?: number;
   minMatches?: number;
+  region?: Region;
 }): Promise<SumobarLeaderboardResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
     min_matches: String(minMatches)
   });
+  if (region !== "combined") {
+    params.set("region", region);
+  }
   const payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
     "/leaderboard",
     params
@@ -467,17 +530,22 @@ export async function getSumobarLeaderboard({
 
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   return {
-    rows: rows.map((row) => ({
-      rank: toNumber(row.rank, 0),
-      playerAuth: String(row.player_auth || ""),
-      elo: toNumber(row.elo, 0),
-      matchesPlayed: toNumber(row.matches_played, 0),
-      kills: toNumber(row.kills, 0),
-      deaths: toNumber(row.deaths, 0),
-      avgScore: toNumberOrNull(row.avg_score),
-      avgPosition: toNumberOrNull(row.avg_position),
-      updatedAt: normalizeDateTime(row.updated_at)
-    })),
+    rows: rows.map((row) => {
+      const matchesPlayed = toNumber(row.matches_played, 0);
+      return {
+        rank: toNumber(row.rank, 0),
+        playerAuth: String(row.player_auth || ""),
+        region: row.region ? String(row.region).toLowerCase() : null,
+        elo: toNumber(row.elo, 0),
+        matchesPlayed,
+        kills: toNumber(row.kills, 0),
+        deaths: toNumber(row.deaths, 0),
+        avgScore: toNumberOrNull(row.avg_score),
+        avgPosition: toNumberOrNull(row.avg_position),
+        placementRates: extractPlacementRates(row, matchesPlayed),
+        updatedAt: normalizeDateTime(row.updated_at)
+      };
+    }),
     pagination: {
       limit: toNumber(payload?.pagination?.limit, limit),
       offset: toNumber(payload?.pagination?.offset, offset),
