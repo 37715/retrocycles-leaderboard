@@ -1,4 +1,5 @@
 export type Season = "2023" | "2024" | "2025" | "2026";
+export type LeaderboardSeason = Season | "weekly";
 export type Region = "combined" | "us" | "eu";
 export type Mode = "tst" | "sbt";
 

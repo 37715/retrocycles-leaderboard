@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type LeaderboardRow, type Region, type Season } from "@/src/lib/types";
+import { type LeaderboardRow, type LeaderboardSeason, type Region, type Season } from "@/src/lib/types";
 import { PrimaryNav } from "@/src/ui/PrimaryNav";
 import {
   SEASONS,
@@ -286,7 +286,7 @@ function shortMatchId(matchId: string): string {
 export function LeaderboardApp() {
   const searchParams = useSearchParams();
   const [boardMode, setBoardMode] = useState<BoardMode>("tst");
-  const [season, setSeason] = useState<Season>("2026");
+  const [season, setSeason] = useState<LeaderboardSeason>("2026");
   const [region, setRegion] = useState<Region>("combined");
   const [advanced, setAdvanced] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
@@ -312,6 +312,8 @@ export function LeaderboardApp() {
   const [sumobarMatchesLoading, setSumobarMatchesLoading] = useState(false);
   const [sumobarMatchesError, setSumobarMatchesError] = useState("");
   const [isSumobarMatchesOpen, setIsSumobarMatchesOpen] = useState(false);
+  const [seasonMenuOpen, setSeasonMenuOpen] = useState(false);
+  const selectedSeason: Season = SEASON_ORDER.includes(season as Season) ? (season as Season) : "2026";
 
   useEffect(() => {
     if (boardMode !== "tst") return;
@@ -433,9 +435,8 @@ export function LeaderboardApp() {
       const payload = await getSumobarLeaderboard({ limit: 50, offset: 0, minMatches: 1, region });
       setSumobarRows(payload.rows);
       setSumobarPagination(payload.pagination);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "failed to load sumobar leaderboard";
-      setSumobarError(message);
+    } catch {
+      setSumobarError("coming soon");
       setSumobarRows([]);
     } finally {
       setSumobarLoading(false);
@@ -512,7 +513,7 @@ export function LeaderboardApp() {
             <h1 className="title">leaderboard</h1>
           </div>
           <span className="gamemode-badge">{boardMode === "sumobar" ? "SUMOBAR" : "TST"}</span>
-          {boardMode === "tst" && <span className="year-badge">{season}</span>}
+          {boardMode === "tst" && <span className="year-badge">{season === "weekly" ? "WEEKLY" : season}</span>}
         </div>
         <p className="subtitle">competitive rankings and statistics</p>
         <div className="update-info">{boardMode === "sumobar" ? "• updates every 30s •" : "• updates hourly •"}</div>
@@ -521,16 +522,54 @@ export function LeaderboardApp() {
       <div className="controls">
         {boardMode === "tst" && (
           <>
+            <div className="control-group weekly-control-group">
+              <button
+                type="button"
+                data-range="weekly"
+                className={`weekly-pill-btn ${season === "weekly" ? "active" : ""}`}
+                title="Last 7 days"
+                onClick={() => setSeason("weekly")}
+              >
+                <span className="weekly-pill-dot" aria-hidden="true"></span>
+                <span className="weekly-pill-title">this week</span>
+              </button>
+              <span className="weekly-subtitle">last 7 days</span>
+            </div>
             <div className="control-group">
-          <label className="control-label">season</label>
-          <select className="season-select" value={season} onChange={(e) => setSeason(e.target.value as Season)}>
-            {SEASON_ORDER.map((value) => (
-              <option key={value} value={value}>
-                {SEASONS[value].label}
-              </option>
-            ))}
-          </select>
-        </div>
+              <label className="control-label">season</label>
+              <div
+                className={`season-dropdown ${seasonMenuOpen ? "is-open" : ""}`}
+                onMouseEnter={() => setSeasonMenuOpen(true)}
+                onMouseLeave={() => setSeasonMenuOpen(false)}
+              >
+                <button type="button" className="season-dropdown-btn" aria-haspopup="listbox">
+                  <span>{SEASONS[selectedSeason].label}</span>
+                  <span className="season-dropdown-caret" aria-hidden="true">▾</span>
+                </button>
+                <div className="season-dropdown-menu" role="listbox" aria-label="select season">
+                  {SEASON_ORDER.map((value) => {
+                    const isWeekly = season === "weekly";
+                    const isSelected = !isWeekly && selectedSeason === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="option"
+                        data-season={value}
+                        aria-selected={isSelected}
+                        className={`season-dropdown-option ${isSelected ? "active" : ""}`}
+                        onClick={() => {
+                          setSeason(value);
+                          setSeasonMenuOpen(false);
+                        }}
+                      >
+                        {SEASONS[value].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
         {season !== "2023" && (
           <div className="control-group">
             <label className="control-label">region</label>

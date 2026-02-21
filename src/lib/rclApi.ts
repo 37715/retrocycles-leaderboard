@@ -1,4 +1,4 @@
-import type { LeaderboardRow, Mode, ProfileRow, ProfileView, Region, Season } from "./types";
+import type { LeaderboardRow, LeaderboardSeason, Mode, ProfileRow, ProfileView, Region, Season } from "./types";
 
 const DEFAULT_MODE: Mode = "tst";
 
@@ -48,15 +48,26 @@ export function getRankMeta(elo: number): { name: string; icon: string; class: s
   return { name: "legend", icon: "/images/ranks/legend.png", class: "rank-legend" };
 }
 
-function getRankingsUrl(season: Season, region: Region): string | null {
-  const yearConfig = SEASONS[season];
-  if (!yearConfig) return null;
-
+function getRankingsUrl(season: LeaderboardSeason, region: Region): string | null {
   const params: string[] = [];
-  if (yearConfig.start) params.push(`datel=${yearConfig.start}`);
-  if (yearConfig.end) params.push(`date=${yearConfig.end}`);
+  let apiId = "tst";
 
-  let apiId = yearConfig.apiId;
+  if (season === "weekly") {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    const endExclusive = new Date(today);
+    endExclusive.setDate(today.getDate() + 1);
+    params.push(`datel=${start.toISOString().slice(0, 10)}`);
+    params.push(`date=${endExclusive.toISOString().slice(0, 10)}`);
+  } else {
+    const yearConfig = SEASONS[season];
+    if (!yearConfig) return null;
+    if (yearConfig.start) params.push(`datel=${yearConfig.start}`);
+    if (yearConfig.end) params.push(`date=${yearConfig.end}`);
+    apiId = yearConfig.apiId;
+  }
+
   if (region === "eu") apiId += "-eu";
   else if (region === "us") apiId += "-us";
   params.push(`id=${apiId}`);
@@ -75,7 +86,7 @@ export async function getLeaderboardRows({
   season,
   region = "combined",
 }: {
-  season: Season;
+  season: LeaderboardSeason;
   region?: Region;
   mode?: Mode;
 }): Promise<LeaderboardRow[]> {
