@@ -313,6 +313,7 @@ export function LeaderboardApp() {
   const [sumobarMatchesError, setSumobarMatchesError] = useState("");
   const [isSumobarMatchesOpen, setIsSumobarMatchesOpen] = useState(false);
   const [seasonMenuOpen, setSeasonMenuOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const selectedSeason: Season = SEASON_ORDER.includes(season as Season) ? (season as Season) : "2026";
 
   useEffect(() => {
@@ -519,7 +520,17 @@ export function LeaderboardApp() {
         <div className="update-info">{boardMode === "sumobar" ? "• updates every 30s •" : "• updates hourly •"}</div>
       </header>
 
-      <div className="controls">
+      <button
+        type="button"
+        className="filter-toggle-btn"
+        onClick={() => setFiltersOpen((o) => !o)}
+        aria-expanded={filtersOpen}
+      >
+        <svg className="filter-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+        <span>filters</span>
+        <svg className={`filter-toggle-caret ${filtersOpen ? "open" : ""}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,4.5 6,7.5 9,4.5"/></svg>
+      </button>
+      <div className={`controls ${filtersOpen ? "filters-open" : ""}`}>
         {boardMode === "tst" && (
           <>
             <div className="control-group weekly-control-group">
@@ -607,48 +618,7 @@ export function LeaderboardApp() {
         </div>
           </>
         )}
-        {boardMode === "sumobar" && (
-          <>
-            <div className="control-group">
-              <label className="control-label">region</label>
-              <div className="region-toggle">
-                {(["combined", "us", "eu"] as const).map((value) => (
-                  <button key={value} type="button" className={`region-btn ${region === value ? "active" : ""}`} onClick={() => setRegion(value)}>
-                    {value.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="control-group">
-              <label className="checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={advanced}
-                  onChange={(e) => {
-                    const next = e.target.checked;
-                    setTransitioning(true);
-                    setTimeout(() => {
-                      setAdvanced(next);
-                      setTimeout(() => setTransitioning(false), 50);
-                    }, 200);
-                  }}
-                />
-                <span className="checkmark"></span>
-                <span className="control-label">advanced stats</span>
-              </label>
-            </div>
-            <div className="control-group">
-              <button className="match-history-btn" type="button" onClick={refreshSumobar}>
-                refresh
-              </button>
-            </div>
-            <div className="control-group">
-              <button className="match-history-btn" type="button" onClick={() => setIsSumobarMatchesOpen(true)}>
-                recent matches
-              </button>
-            </div>
-          </>
-        )}
+        {boardMode === "sumobar" && (<></>)}
       </div>
 
       {boardMode === "tst" && isMatchOverlayOpen && (
@@ -743,43 +713,6 @@ export function LeaderboardApp() {
         </div>
       )}
 
-      {boardMode === "sumobar" && isSumobarMatchesOpen && (
-        <div className="match-history-overlay" onClick={() => setIsSumobarMatchesOpen(false)}>
-          <div className="match-history-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="sumobar recent matches">
-            <div className="match-history-header">
-              <div className="match-history-title">match history</div>
-              <div className="match-history-meta">sumobar · recent</div>
-              <button className="match-history-close" type="button" onClick={() => setIsSumobarMatchesOpen(false)} aria-label="close sumobar matches">
-                ×
-              </button>
-            </div>
-            <div className="match-history-list">
-              {sumobarMatchesLoading && <div className="match-empty">loading recent matches...</div>}
-              {!sumobarMatchesLoading && sumobarMatchesError && <div className="match-empty">{sumobarMatchesError}</div>}
-              {!sumobarMatchesLoading && !sumobarMatchesError && sumobarMatches.length === 0 && <div className="match-empty">no recent matches</div>}
-              {!sumobarMatchesLoading &&
-                !sumobarMatchesError &&
-                sumobarMatches.map((match) => (
-                  <div key={match.matchId} className="sumobar-popup-row">
-                    <span className="sumobar-popup-id" title={match.matchId}>
-                      {shortMatchId(match.matchId)}
-                    </span>
-                    <span className="sumobar-popup-sep">|</span>
-                    <span className="sumobar-popup-rounds">{match.roundsPlayed} rounds</span>
-                    <span className="sumobar-popup-sep">|</span>
-                    <span className="sumobar-popup-team">winner: {match.winnerTeam || "-"}</span>
-                    <span className="sumobar-popup-sep">|</span>
-                    <span className="sumobar-popup-players">
-                      {match.winnerPlayers.length > 0 ? match.winnerPlayers.join(", ") : "-"}
-                    </span>
-                    <span className="sumobar-popup-sep">|</span>
-                    <span className="sumobar-popup-time">{formatDateTime(match.endedAt)}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="main-content">
         {boardMode === "tst" && (
@@ -891,161 +824,10 @@ export function LeaderboardApp() {
         )}
 
         {boardMode === "sumobar" && (
-          <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}${transitioning ? " transitioning" : ""}`}>
-            <div className="leaderboard-header">
-              <div
-                className={`rank-col sortable-header ${sumobarSorting.key === "rank" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("rank")}
-                aria-sort={sumobarSorting.key === "rank" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">#</span>
-                {sumobarSorting.key === "rank" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`player-col sortable-header ${sumobarSorting.key === "player" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("player")}
-                aria-sort={sumobarSorting.key === "player" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Player</span>
-                {sumobarSorting.key === "player" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`rating-col sortable-header ${sumobarSorting.key === "elo" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("elo")}
-                aria-sort={sumobarSorting.key === "elo" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Rating</span>
-                {sumobarSorting.key === "elo" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`change-col sortable-header ${columnVisibility.lastActive === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kills" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("kills")}
-                aria-sort={sumobarSorting.key === "kills" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Kills</span>
-                {sumobarSorting.key === "kills" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`activity-col sortable-header ${columnVisibility.lastActive === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "lastActive" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("lastActive")}
-                aria-sort={sumobarSorting.key === "lastActive" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Last Active</span>
-                {sumobarSorting.key === "lastActive" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`matches-col sortable-header ${columnVisibility.matches === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "matches" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("matches")}
-                aria-sort={sumobarSorting.key === "matches" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Matches</span>
-                {sumobarSorting.key === "matches" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`winrate-col sortable-header ${columnVisibility.winrate === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "deaths" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("deaths")}
-                aria-sort={sumobarSorting.key === "deaths" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Deaths</span>
-                {sumobarSorting.key === "deaths" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`avg-place-col sortable-header ${columnVisibility.avgPlace === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "avgPosition" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("avgPosition")}
-                aria-sort={sumobarSorting.key === "avgPosition" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Avg Pos</span>
-                {sumobarSorting.key === "avgPosition" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`avg-score-col sortable-header ${columnVisibility.avgScore === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "avgScore" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("avgScore")}
-                aria-sort={sumobarSorting.key === "avgScore" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">Avg Score</span>
-                {sumobarSorting.key === "avgScore" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`high-score-col sortable-header ${columnVisibility.highScore === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kdDiff" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("kdDiff")}
-                aria-sort={sumobarSorting.key === "kdDiff" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">K-D Diff</span>
-                {sumobarSorting.key === "kdDiff" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div
-                className={`kd-col sortable-header ${columnVisibility.kd === false ? "is-hidden-column" : ""} ${sumobarSorting.key === "kd" ? "is-active-sort" : ""}`}
-                onClick={() => toggleSumobarSort("kd")}
-                aria-sort={sumobarSorting.key === "kd" ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none"}
-              >
-                <span className="sortable-header-label">K/D</span>
-                {sumobarSorting.key === "kd" && <span className="sort-indicator active">{sumobarSorting.dir === "asc" ? "↑" : "↓"}</span>}
-              </div>
-              <div className={`tier-col ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>Rank</div>
-            </div>
-            <div className="leaderboard-content" id="sumobar-leaderboard">
-              {sumobarLoading && (
-                <div className="loading-container">
-                  <div className="loading-text">loading sumobar leaderboard...</div>
-                </div>
-              )}
-              {!sumobarLoading && sumobarError && (
-                <div className="loading-container">
-                  <div className="loading-text">{sumobarError}</div>
-                </div>
-              )}
-              {!sumobarLoading && !sumobarError && sortedSumobarRows.length === 0 && (
-                <div className="loading-container">
-                  <div className="loading-text">no players found</div>
-                </div>
-              )}
-              {!sumobarLoading &&
-                !sumobarError &&
-                sortedSumobarRows.map((row) => {
-                  const rankMeta = getRankMeta(row.elo || 1500);
-                  const kd = (row.kills / Math.max(row.deaths, 1)).toFixed(2);
-                  const kdDiff = row.kills - row.deaths;
-                  return (
-                    <div key={`${row.playerAuth}-${row.rank}`} className={`leaderboard-entry rank-tint-${rankMeta.class}`}>
-                      <div className="rank-position">{row.rank}</div>
-                      <div className="player">
-                        <span className="username">{row.playerAuth}</span>
-                      </div>
-                      <div className="rating">{row.elo}</div>
-                      <div className={`change ${columnVisibility.lastActive === false ? "is-hidden-column" : ""}`}>{row.kills}</div>
-                      <div className={`last-active ${columnVisibility.lastActive === false ? "is-hidden-column" : ""}`}>{formatLastActive(row.updatedAt)}</div>
-                      <div className={`matches ${columnVisibility.matches === false ? "is-hidden-column" : ""}`}>
-                        <div className="winrate-bar">
-                          <div
-                            className="winrate-fill"
-                            style={{
-                              width: "100%",
-                              background: getSumobarMatchesGradient(row.placementRates, row.avgPosition, row.matchesPlayed)
-                            }}
-                          />
-                        </div>
-                        <span className="matches-count">{row.matchesPlayed}</span>
-                      </div>
-                      <div className={`percentage ${columnVisibility.winrate === false ? "is-hidden-column" : ""}`}>{row.deaths}</div>
-                      <div className={`stat avg-place ${columnVisibility.avgPlace === false ? "is-hidden-column" : ""}`}>
-                        {row.avgPosition === null ? "-" : row.avgPosition.toFixed(2)}
-                      </div>
-                      <div className={`score avg-score-cell ${columnVisibility.avgScore === false ? "is-hidden-column" : ""}`}>
-                        {row.avgScore === null ? "-" : row.avgScore.toFixed(1)}
-                      </div>
-                      <div className={`score high-score ${columnVisibility.highScore === false ? "is-hidden-column" : ""}`}>
-                        {kdDiff >= 0 ? "+" : ""}
-                        {kdDiff}
-                      </div>
-                      <div className={`kd ${columnVisibility.kd === false ? "is-hidden-column" : ""}`}>{kd}</div>
-                      <Link href="/ranks" className={`tier ${rankMeta.class} ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>
-                        <img className="rank-icon" src={rankMeta.icon} alt={rankMeta.name} />
-                        <span className="rank-name">{rankMeta.name}</span>
-                      </Link>
-                    </div>
-                  );
-                })}
-            </div>
+          <div className="sumobar-coming-soon">
+            <div className="sumobar-coming-soon-icon">🏗</div>
+            <h2 className="sumobar-coming-soon-title">coming soon</h2>
+            <p className="sumobar-coming-soon-text">the sumobar leaderboard is being built and will be available shortly</p>
           </div>
         )}
       </div>
