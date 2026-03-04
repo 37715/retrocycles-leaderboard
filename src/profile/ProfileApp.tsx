@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SEASONS, getPlayerProfileView, getRankMeta } from "@/src/lib/rclApi";
+import { SEASONS, SUMOBAR_SEASONS, getPlayerProfileView, getPlayerSumobarProfileView, getRankMeta } from "@/src/lib/rclApi";
 import type { ProfileRow, ProfileSummary, Season } from "@/src/lib/types";
 import { PrimaryNav } from "@/src/ui/PrimaryNav";
 
@@ -18,6 +18,7 @@ const DEFAULT_SUMMARY: ProfileSummary = {
   latestOnline: "—"
 };
 const SEASON_ORDER: Season[] = ["2026", "2025", "2024", "2023"];
+type ProfileMode = "tst" | "sumobar";
 
 type ProfileSortKey = "date" | "teammate" | "exitRating" | "change" | "teamPlace" | "individualPlace" | "played" | "alive" | "score" | "kd";
 
@@ -37,6 +38,7 @@ const PAGE_SIZE = 20;
 export function ProfileApp() {
   const params = useSearchParams();
   const username = params.get("user") || params.get("username") || "";
+  const [mode, setMode] = useState<ProfileMode>("tst");
   const [season, setSeason] = useState<Season>("2026");
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [summary, setSummary] = useState<ProfileSummary>(DEFAULT_SUMMARY);
@@ -58,36 +60,53 @@ export function ProfileApp() {
     setLoading(true);
     setError("");
 
-    getPlayerProfileView({ username, season, mode: "tst", region: "combined" })
-      .then((result) => {
-        if (ignore) return;
-        setRows(Array.isArray(result?.rows) ? result.rows : []);
-        setSummary(result?.summary || DEFAULT_SUMMARY);
-        setLeaderboardRank(result?.leaderboardRank ?? null);
-      })
-      .catch((err: Error) => {
-        if (!ignore) setError(err.message || "failed to load player profile");
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false);
-      });
+    if (mode === "sumobar") {
+      getPlayerSumobarProfileView(username)
+        .then((result) => {
+          if (ignore) return;
+          setRows(Array.isArray(result?.rows) ? result.rows : []);
+          setSummary(result?.summary || DEFAULT_SUMMARY);
+          setLeaderboardRank(result?.leaderboardRank ?? null);
+        })
+        .catch((err: Error) => {
+          if (!ignore) setError(err.message || "failed to load player profile");
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false);
+        });
+    } else {
+      getPlayerProfileView({ username, season, mode: "tst", region: "combined" })
+        .then((result) => {
+          if (ignore) return;
+          setRows(Array.isArray(result?.rows) ? result.rows : []);
+          setSummary(result?.summary || DEFAULT_SUMMARY);
+          setLeaderboardRank(result?.leaderboardRank ?? null);
+        })
+        .catch((err: Error) => {
+          if (!ignore) setError(err.message || "failed to load player profile");
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false);
+        });
+    }
 
     return () => {
       ignore = true;
     };
-  }, [season, username]);
+  }, [season, username, mode]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
     setSorting({ key: "date", dir: "desc" });
     setChartShowAll(false);
-  }, [season, username]);
+  }, [season, username, mode]);
 
   const rankInfo = getRankMeta(summary.latestElo || 0);
 
   const CHART_WINDOW = 60;
 
   const eloChartData = useMemo(() => {
+    if (mode === "sumobar") return null;
     const allPoints = rows
       .filter((r) => typeof r.exitRating === "number")
       .map((r) => ({ elo: r.exitRating as number, date: r.date, dateRaw: r.dateRaw }))
@@ -135,7 +154,7 @@ export function ProfileApp() {
     for (let v = gridStart; v <= max; v += step) gridLines.push(v);
 
     return { coords, min, max, range, w, h, padX, padTop, padBottom, plotH, plotW, gridLines, step, totalPoints };
-  }, [rows, chartShowAll]);
+  }, [rows, chartShowAll, mode]);
 
   const eloNetChange = useMemo(() => {
     if (rows.length === 0) return null;
@@ -208,13 +227,35 @@ export function ProfileApp() {
         <Link href="/leaderboard" className="profile-back">
           ← back to leaderboard
         </Link>
-        <select className="profile-season-select" value={season} onChange={(e) => setSeason(e.target.value as Season)}>
-          {SEASON_ORDER.map((value) => (
-            <option key={value} value={value}>
-              {SEASONS[value].label}
-            </option>
-          ))}
-        </select>
+        <div className="profile-controls">
+          <div className="profile-mode-toggle">
+            <button
+              type="button"
+              className={`profile-mode-btn ${mode === "tst" ? "active" : ""}`}
+              onClick={() => setMode("tst")}
+            >
+              tst
+            </button>
+            <button
+              type="button"
+              className={`profile-mode-btn ${mode === "sumobar" ? "active" : ""}`}
+              onClick={() => setMode("sumobar")}
+            >
+              sumobar
+            </button>
+          </div>
+          {mode === "tst" ? (
+            <select className="profile-season-select" value={season} onChange={(e) => setSeason(e.target.value as Season)}>
+              {SEASON_ORDER.map((value) => (
+                <option key={value} value={value}>
+                  {SEASONS[value].label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="profile-season-label">{SUMOBAR_SEASONS["2026"].label}</span>
+          )}
+        </div>
       </div>
 
       <header className="profile-hero">
@@ -223,6 +264,7 @@ export function ProfileApp() {
             <h1 className="profile-hero-name">{username || "unknown player"}</h1>
             <div className="profile-hero-meta">
               <span>player profile</span>
+              <span className="profile-hero-mode"> · {mode === "sumobar" ? "sumobar" : "tst"}</span>
             </div>
             <div className="profile-last-online">
               <span className="profile-status-dot"></span>
@@ -247,7 +289,7 @@ export function ProfileApp() {
 
       <div className="profile-body">
         {!username && <div className="profile-loading">no player selected</div>}
-        {username && loading && <div className="profile-loading">loading {season} profile...</div>}
+        {username && loading && <div className="profile-loading">loading {mode === "sumobar" ? "sumobar" : season} profile...</div>}
         {username && !loading && error && <div className="profile-loading">{error}</div>}
         {username && !loading && !error && (
           <>
@@ -369,7 +411,7 @@ export function ProfileApp() {
                 <button type="button" onClick={() => handleSort("score")} className={sorting.key === "score" ? "active" : ""}>score{sortIndicator("score")}</button>
                 <button type="button" onClick={() => handleSort("kd")} className={sorting.key === "kd" ? "active" : ""}>k/d{sortIndicator("kd")}</button>
               </div>
-              {rows.length === 0 && <div className="profile-loading">no matches found for {season}</div>}
+              {rows.length === 0 && <div className="profile-loading">no matches found for {mode === "sumobar" ? "sumobar" : season}</div>}
               {sortedRows.slice(0, visibleCount).map((row) => {
                 const changeVal = parseChange(row.change);
                 const isBest = bestMatchIndices.has(row._origIdx);

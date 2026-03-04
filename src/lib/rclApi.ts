@@ -15,6 +15,11 @@ export const SEASONS: Record<Season, { start: string; end: string; apiId: string
   "2023": { start: "2023-01-01", end: "2023-12-31", apiId: "tst24", label: "Season 1 (2023)" }
 };
 
+export const SUMOBAR_SEASON_ORDER: Season[] = ["2026"];
+export const SUMOBAR_SEASONS: Record<string, { label: string }> = {
+  "2026": { label: "Season 1 (2026)" }
+};
+
 function formatMatchTimestamp(isoString?: string): string {
   if (!isoString) return "unknown time";
   const date = new Date(isoString);
@@ -343,6 +348,110 @@ export async function getPlayerProfileView({
   };
 }
 
+async function getPlayerSumobarLeaderboardRank(username: string): Promise<{ rank: number | null; elo: number | null }> {
+  try {
+    const payload = await getSumobarLeaderboard({ limit: 500, offset: 0, minMatches: 1, region: "combined" });
+    const normalized = username.toLowerCase();
+    const row = payload.rows.find((r) => r.playerAuth.toLowerCase() === normalized);
+    return {
+      rank: row ? row.rank : null,
+      elo: row ? row.elo : null
+    };
+  } catch {
+    return { rank: null, elo: null };
+  }
+}
+
+export async function getPlayerSumobarProfileView(username: string): Promise<ProfileView> {
+  const [matchesPayload, { rank: leaderboardRank, elo: latestElo }] = await Promise.all([
+    getSumobarMatches({ limit: 100, offset: 0 }),
+    getPlayerSumobarLeaderboardRank(username)
+  ]);
+
+  const normalized = username.toLowerCase();
+  const playerMatches = matchesPayload.rows.filter((m) =>
+    m.players.some((p) => p.playerName.toLowerCase() === normalized)
+  );
+
+  if (playerMatches.length === 0) {
+    return {
+      rows: [],
+      summary: {
+        matches: 0,
+        avgKd: "0.00",
+        avgScore: 0,
+        avgAlive: "—",
+        winRate: 0,
+        rageQuit: "—",
+        latestElo: latestElo !== null ? Math.round(latestElo) : null,
+        latestOnline: "—"
+      },
+      leaderboardRank
+    };
+  }
+
+  let totalKills = 0;
+  let totalDeaths = 0;
+  let totalScore = 0;
+  let wins = 0;
+  const rows: ProfileRow[] = [];
+
+  for (const match of playerMatches) {
+    const player = match.players.find((p) => p.playerName.toLowerCase() === normalized);
+    if (!player) continue;
+
+    const teammates = match.players
+      .filter((p) => p.team === player.team && p.playerName.toLowerCase() !== normalized)
+      .map((p) => p.playerName)
+      .join(", ") || "—";
+
+    totalKills += player.kills;
+    totalDeaths += player.deaths;
+    totalScore += player.score;
+    const won = (match.winnerTeam || "").toLowerCase() === (player.team || "").toLowerCase();
+    if (won) wins += 1;
+
+    const dateRaw = new Date(match.endedAt).getTime();
+    rows.push({
+      id: match.matchId,
+      dateRaw,
+      date: formatMatchTimestamp(match.endedAt),
+      teammates,
+      exitRating: "—",
+      change: "—",
+      teamPlace: player.avgPlace.toFixed(1),
+      individualPlace: "—",
+      played: "100%",
+      alive: "—",
+      score: player.score,
+      kd: player.deaths > 0 ? (player.kills / player.deaths).toFixed(2) : `${player.kills}.00`
+    });
+  }
+
+  rows.sort((a, b) => b.dateRaw - a.dateRaw);
+
+  const matchCount = rows.length;
+  const avgKd = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : `${totalKills}.00`;
+  const avgScore = matchCount ? Math.round(totalScore / matchCount) : 0;
+  const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
+  const latestOnline = rows.length > 0 ? rows[0].date : "—";
+
+  return {
+    rows,
+    summary: {
+      matches: matchCount,
+      avgKd,
+      avgScore,
+      avgAlive: "—",
+      winRate,
+      rageQuit: "—",
+      latestElo: latestElo !== null ? Math.round(latestElo) : null,
+      latestOnline
+    },
+    leaderboardRank
+  };
+}
+
 async function getPlayerLeaderboardRank(username: string, season: Season): Promise<number | null> {
   try {
     const url = getRankingsUrl(season, "combined");
@@ -387,13 +496,28 @@ export interface SumobarLeaderboardRow {
   playerAuth: string;
   region: string | null;
   elo: number;
+  ratingChange: number | null;
   matchesPlayed: number;
   kills: number;
   deaths: number;
+  kd: number | null;
+  winRatePct: number | null;
   avgScore: number | null;
   avgPosition: number | null;
+  highScore: number | null;
   placementRates: number[] | null;
   updatedAt: string;
+}
+
+export interface SumobarMatchPlayer {
+  playerName: string;
+  team: string;
+  kills: number;
+  deaths: number;
+  score: number;
+  roundsPlayed: number;
+  avgPlace: number;
+  kd: number;
 }
 
 export interface SumobarMatchRow {
@@ -402,6 +526,7 @@ export interface SumobarMatchRow {
   winnerTeam: string | null;
   winnerPlayers: string[];
   endedAt: string;
+  players: SumobarMatchPlayer[];
 }
 
 export interface SumobarLeaderboardResponse {
@@ -519,12 +644,14 @@ export async function getSumobarLeaderboard({
   limit = 50,
   offset = 0,
   minMatches = 1,
-  region = "combined"
+  region = "combined",
+  season = "2026"
 }: {
   limit?: number;
   offset?: number;
   minMatches?: number;
   region?: Region;
+  season?: LeaderboardSeason;
 }): Promise<SumobarLeaderboardResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
@@ -533,6 +660,21 @@ export async function getSumobarLeaderboard({
   });
   if (region !== "combined") {
     params.set("region", region);
+  }
+  if (season === "weekly") {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    const endExclusive = new Date(today);
+    endExclusive.setDate(today.getDate() + 1);
+    params.set("datel", start.toISOString().slice(0, 10));
+    params.set("date", endExclusive.toISOString().slice(0, 10));
+  } else {
+    const config = SEASONS[season as Season];
+    if (config) {
+      params.set("datel", config.start);
+      params.set("date", config.end);
+    }
   }
   const payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
     "/leaderboard",
@@ -543,18 +685,24 @@ export async function getSumobarLeaderboard({
   return {
     rows: rows.map((row) => {
       const matchesPlayed = toNumber(row.matches_played, 0);
+      const kills = toNumber(row.kills, 0);
+      const deaths = toNumber(row.deaths, 0);
       return {
         rank: toNumber(row.rank, 0),
-        playerAuth: String(row.player_auth || ""),
+        playerAuth: String(row.player_auth || row.player_name || ""),
         region: row.region ? String(row.region).toLowerCase() : null,
-        elo: toNumber(row.elo, 0),
+        elo: toNumber(row.elo ?? row.rating, 0),
+        ratingChange: toNumberOrNull(row.rating_change),
         matchesPlayed,
-        kills: toNumber(row.kills, 0),
-        deaths: toNumber(row.deaths, 0),
+        kills,
+        deaths,
+        kd: toNumberOrNull(row.kd),
+        winRatePct: toNumberOrNull(row.win_rate_pct),
         avgScore: toNumberOrNull(row.avg_score),
-        avgPosition: toNumberOrNull(row.avg_position),
+        avgPosition: toNumberOrNull(row.avg_position ?? row.avg_place),
+        highScore: toNumberOrNull(row.high_score),
         placementRates: extractPlacementRates(row, matchesPlayed),
-        updatedAt: normalizeDateTime(row.updated_at)
+        updatedAt: normalizeDateTime(row.updated_at ?? row.last_active)
       };
     }),
     pagination: {
@@ -576,19 +724,38 @@ export async function getSumobarMatches({
     limit: String(limit),
     offset: String(offset)
   });
-  const payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
-    "/matches",
-    params
-  );
+  let payload: { rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> };
+  try {
+    payload = await fetchSumobarJson<{ rows?: Array<Record<string, unknown>>; pagination?: Partial<SumobarPagination> }>(
+      "/matches",
+      params
+    );
+  } catch (err) {
+    throw new Error("Match history is temporarily unavailable. Please try again later.");
+  }
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   return {
-    rows: rows.map((row) => ({
-      matchId: String(row.match_id || ""),
-      roundsPlayed: toNumber(row.rounds_played, 0),
-      winnerTeam: row.winner_team === null || row.winner_team === undefined ? null : String(row.winner_team),
-      winnerPlayers: Array.isArray(row.winner_players) ? row.winner_players.map((player) => String(player)) : [],
-      endedAt: normalizeDateTime(row.ended_at)
-    })),
+    rows: rows.map((row) => {
+      const rawPlayers = Array.isArray(row.players) ? row.players : [];
+      const players: SumobarMatchPlayer[] = rawPlayers.map((p: Record<string, unknown>) => ({
+        playerName: String(p.player_name ?? p.playerName ?? ""),
+        team: String(p.team ?? "").toLowerCase(),
+        kills: toNumber(p.kills, 0),
+        deaths: toNumber(p.deaths, 0),
+        score: toNumber(p.score, 0),
+        roundsPlayed: toNumber(p.rounds_played ?? p.roundsPlayed, 0),
+        avgPlace: toNumber(p.avg_place ?? p.avgPlace, 0),
+        kd: toNumber(p.kd, 0)
+      }));
+      return {
+        matchId: String(row.match_id || ""),
+        roundsPlayed: toNumber(row.rounds_played, 0),
+        winnerTeam: row.winner_team === null || row.winner_team === undefined ? null : String(row.winner_team),
+        winnerPlayers: Array.isArray(row.winner_players) ? row.winner_players.map((player) => String(player)) : [],
+        endedAt: normalizeDateTime(row.ended_at),
+        players
+      };
+    }),
     pagination: {
       limit: toNumber(payload?.pagination?.limit, limit),
       offset: toNumber(payload?.pagination?.offset, offset),

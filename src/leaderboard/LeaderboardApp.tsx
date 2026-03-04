@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { HyperText } from "@/components/ui/hyper-text";
 import { type LeaderboardRow, type LeaderboardSeason, type Region, type Season } from "@/src/lib/types";
 import { PrimaryNav } from "@/src/ui/PrimaryNav";
 import {
   SEASONS,
+  SUMOBAR_SEASON_ORDER,
+  SUMOBAR_SEASONS,
   getLeaderboardRows,
   getMatchDetails,
   getMatchHistory,
@@ -57,7 +60,9 @@ const SORTABLE_COLUMNS: Array<[SortKey, string, string]> = [
   ["kd", "K/D", "kd-col"]
 ];
 const SEASON_ORDER: Season[] = ["2026", "2025", "2024", "2023"];
+const SUMOBAR_TEAM_COLORS = ["gold", "orange", "ugly", "purple", "green", "blue", "red", "pink"] as const;
 type BoardMode = "tst" | "sumobar";
+const SUMOBAR_ENABLED = false;
 
 const DEFAULT_COLUMN_VISIBILITY = {
   lastActive: true,
@@ -133,9 +138,9 @@ function getSumobarSortableValue(player: SumobarLeaderboardRow, key: SumobarSort
     case "avgScore":
       return player.avgScore ?? Number.NEGATIVE_INFINITY;
     case "kdDiff":
-      return player.kills - player.deaths;
+      return player.ratingChange ?? (player.kills - player.deaths);
     case "kd":
-      return player.kills / Math.max(player.deaths, 1);
+      return player.kd ?? (player.kills / Math.max(player.deaths, 1));
     default:
       return 0;
   }
@@ -315,6 +320,7 @@ export function LeaderboardApp() {
   const [seasonMenuOpen, setSeasonMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const selectedSeason: Season = SEASON_ORDER.includes(season as Season) ? (season as Season) : "2026";
+  const rankedNoticeText = "play 10 matches to appear on the leaderboard";
 
   useEffect(() => {
     if (boardMode !== "tst") return;
@@ -347,6 +353,7 @@ export function LeaderboardApp() {
     const mode = searchParams.get("mode");
     if (mode === "sumobar") {
       setBoardMode("sumobar");
+      setSeason((s) => (s === "weekly" ? s : "2026"));
       return;
     }
     if (mode === "tst") {
@@ -360,6 +367,12 @@ export function LeaderboardApp() {
       setIsSumobarMatchesOpen(false);
     }
   }, [boardMode]);
+
+  useEffect(() => {
+    if (!SUMOBAR_ENABLED || boardMode !== "sumobar") return;
+    if (!isSumobarMatchesOpen) return;
+    void loadSumobarMatches();
+  }, [boardMode, isSumobarMatchesOpen]);
 
   useEffect(() => {
     if (boardMode !== "tst") return;
@@ -386,7 +399,9 @@ export function LeaderboardApp() {
   }, [boardMode, isMatchOverlayOpen, matchHistoryRows]);
 
   const filtered = useMemo(() => {
-    let nextRows = [...rows];
+    // Keep yearly boards strict (10+), but show weekly board with 1+ matches.
+    const minMatchesForBoard = season === "weekly" ? 1 : 10;
+    let nextRows = rows.filter((row) => row.matches >= minMatchesForBoard);
     nextRows = [...nextRows].sort((a, b) => {
       const av = getSortableValue(a, sorting.key);
       const bv = getSortableValue(b, sorting.key);
@@ -399,7 +414,7 @@ export function LeaderboardApp() {
       return sorting.dir === "asc" ? Number(av) - Number(bv) : Number(bv) - Number(av);
     });
     return nextRows.map((row, index) => ({ ...row, rank: index + 1 }));
-  }, [rows, sorting]);
+  }, [rows, sorting, season]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const clampedPageIndex = Math.min(pageIndex, totalPages - 1);
@@ -430,14 +445,16 @@ export function LeaderboardApp() {
   };
 
   const loadSumobarLeaderboard = async () => {
+    if (!SUMOBAR_ENABLED) return;
     setSumobarLoading(true);
     setSumobarError("");
     try {
-      const payload = await getSumobarLeaderboard({ limit: 50, offset: 0, minMatches: 1, region });
+      const payload = await getSumobarLeaderboard({ limit: 50, offset: 0, minMatches: 1, region, season });
       setSumobarRows(payload.rows);
       setSumobarPagination(payload.pagination);
-    } catch {
-      setSumobarError("coming soon");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "failed to load sumobar leaderboard";
+      setSumobarError(message);
       setSumobarRows([]);
     } finally {
       setSumobarLoading(false);
@@ -445,6 +462,7 @@ export function LeaderboardApp() {
   };
 
   const loadSumobarMatches = async () => {
+    if (!SUMOBAR_ENABLED) return;
     setSumobarMatchesLoading(true);
     setSumobarMatchesError("");
     try {
@@ -461,21 +479,20 @@ export function LeaderboardApp() {
 
   const refreshSumobar = () => {
     void loadSumobarLeaderboard();
-    void loadSumobarMatches();
   };
 
   useEffect(() => {
-    if (boardMode !== "sumobar") return;
+    if (!SUMOBAR_ENABLED || boardMode !== "sumobar") return;
     refreshSumobar();
-  }, [boardMode, region]);
+  }, [boardMode, region, season]);
 
   useEffect(() => {
-    if (boardMode !== "sumobar") return;
+    if (!SUMOBAR_ENABLED || boardMode !== "sumobar") return;
     const interval = window.setInterval(() => {
       refreshSumobar();
     }, 30000);
     return () => window.clearInterval(interval);
-  }, [boardMode, region]);
+  }, [boardMode, region, season]);
 
   const filteredSumobarRows = useMemo(() => {
     if (region === "combined") return sumobarRows;
@@ -494,6 +511,13 @@ export function LeaderboardApp() {
     });
     return nextRows;
   }, [filteredSumobarRows, sumobarSorting]);
+
+  const totalSumobarPages = Math.max(1, Math.ceil(sortedSumobarRows.length / pageSize));
+  const clampedSumobarPageIndex = Math.min(pageIndex, totalSumobarPages - 1);
+  const pagedSumobarRows = sortedSumobarRows.slice(
+    clampedSumobarPageIndex * pageSize,
+    clampedSumobarPageIndex * pageSize + pageSize
+  );
 
   const toggleSumobarSort = (key: SumobarSortKey) => {
     setSumobarSorting((prev) => {
@@ -514,10 +538,17 @@ export function LeaderboardApp() {
             <h1 className="title">leaderboard</h1>
           </div>
           <span className="gamemode-badge">{boardMode === "sumobar" ? "SUMOBAR" : "TST"}</span>
-          {boardMode === "tst" && <span className="year-badge">{season === "weekly" ? "WEEKLY" : season}</span>}
+          <span className="year-badge">{season === "weekly" ? "WEEKLY" : season}</span>
         </div>
         <p className="subtitle">competitive rankings and statistics</p>
-        <div className="update-info">{boardMode === "sumobar" ? "• updates every 30s •" : "• updates hourly •"}</div>
+        <div className="update-info">
+          <HyperText
+            text={`• ${rankedNoticeText} •`}
+            duration={1300}
+            className="update-info-letter"
+            animateOnLoad={false}
+          />
+        </div>
       </header>
 
       <button
@@ -618,7 +649,91 @@ export function LeaderboardApp() {
         </div>
           </>
         )}
-        {boardMode === "sumobar" && (<></>)}
+        {boardMode === "sumobar" && SUMOBAR_ENABLED && (
+          <>
+            <div className="control-group weekly-control-group">
+              <button
+                type="button"
+                data-range="weekly"
+                className={`weekly-pill-btn ${season === "weekly" ? "active" : ""}`}
+                title="Last 7 days"
+                onClick={() => setSeason("weekly")}
+              >
+                <span className="weekly-pill-dot" aria-hidden="true"></span>
+                <span className="weekly-pill-title">this week</span>
+              </button>
+              <span className="weekly-subtitle">last 7 days</span>
+            </div>
+            <div className="control-group">
+              <label className="control-label">season</label>
+              <div
+                className={`season-dropdown ${seasonMenuOpen ? "is-open" : ""}`}
+                onMouseEnter={() => setSeasonMenuOpen(true)}
+                onMouseLeave={() => setSeasonMenuOpen(false)}
+              >
+                <button type="button" className="season-dropdown-btn" aria-haspopup="listbox">
+                  <span>{SUMOBAR_SEASONS[season === "weekly" ? "2026" : season]?.label ?? "Season 1 (2026)"}</span>
+                  <span className="season-dropdown-caret" aria-hidden="true">▾</span>
+                </button>
+                <div className="season-dropdown-menu" role="listbox" aria-label="select season">
+                  {SUMOBAR_SEASON_ORDER.map((value) => {
+                    const isWeekly = season === "weekly";
+                    const isSelected = !isWeekly && season === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="option"
+                        data-season={value}
+                        aria-selected={isSelected}
+                        className={`season-dropdown-option ${isSelected ? "active" : ""}`}
+                        onClick={() => {
+                          setSeason(value);
+                          setSeasonMenuOpen(false);
+                        }}
+                      >
+                        {SUMOBAR_SEASONS[value].label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="control-group">
+              <label className="control-label">region</label>
+              <div className="region-toggle">
+                {(["combined", "us", "eu"] as const).map((value) => (
+                  <button key={value} type="button" className={`region-btn ${region === value ? "active" : ""}`} onClick={() => setRegion(value)}>
+                    {value.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="control-group">
+              <label className="checkbox-container">
+                <input
+                  type="checkbox"
+                  checked={advanced}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setTransitioning(true);
+                    setTimeout(() => {
+                      setAdvanced(next);
+                      setTimeout(() => setTransitioning(false), 50);
+                    }, 200);
+                  }}
+                />
+                <span className="checkmark"></span>
+                <span className="control-label">advanced stats</span>
+              </label>
+            </div>
+            <div className="control-group">
+              <button className="match-history-btn" type="button" onClick={() => setIsSumobarMatchesOpen(true)}>
+                match history
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {boardMode === "tst" && isMatchOverlayOpen && (
@@ -767,7 +882,7 @@ export function LeaderboardApp() {
                           {player.name}
                         </Link>
                       </div>
-                      <div className="rating">{player.elo}</div>
+                      <div className="rating">{Math.round(player.elo)}</div>
                       <div className={`change ${player.latestChange >= 0 ? "positive" : "negative"}`}>
                         {player.latestChange >= 0 ? "+" : ""}
                         {player.latestChange}
@@ -823,14 +938,274 @@ export function LeaderboardApp() {
           </div>
         )}
 
-        {boardMode === "sumobar" && (
+        {boardMode === "sumobar" && SUMOBAR_ENABLED && (
+          <div className={`leaderboard-wrapper ${advanced ? "" : "simple-mode"}${transitioning ? " transitioning" : ""}`}>
+            <div className="leaderboard-header">
+              {SORTABLE_COLUMNS.map(([key, label, className]) =>
+                (() => {
+                  const sortKey: SumobarSortKey | null =
+                    key === "rank" ? "rank" :
+                    key === "name" ? "player" :
+                    key === "elo" ? "elo" :
+                    key === "latestChange" ? "kdDiff" :
+                    key === "lastActive" ? "lastActive" :
+                    key === "matches" ? "matches" :
+                    key === "winrate" ? "avgPosition" :
+                    key === "avgPlace" ? "avgPosition" :
+                    key === "avgScore" ? "avgScore" :
+                    key === "highScore" ? "kills" :
+                    key === "kd" ? "kd" :
+                    null;
+                  const isSortable = sortKey !== null && key !== "rank";
+                  const isActiveSort = sortKey !== null && sumobarSorting.key === sortKey;
+                  return (
+                    <div
+                      key={key}
+                      className={`${className} ${isSortable ? "sortable-header" : ""} ${isActiveSort ? "is-active-sort" : ""} ${
+                        columnVisibility[key as keyof typeof DEFAULT_COLUMN_VISIBILITY] === false ? "is-hidden-column" : ""
+                      }`}
+                      onClick={isSortable && sortKey ? () => toggleSumobarSort(sortKey) : undefined}
+                      aria-sort={isSortable ? (isActiveSort ? (sumobarSorting.dir === "asc" ? "ascending" : "descending") : "none") : undefined}
+                    >
+                      <span className="sortable-header-label">{label}</span>
+                      {isSortable && isActiveSort && (
+                        <span className="sort-indicator active" aria-hidden="true">
+                          {sumobarSorting.dir === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+              <div className={`tier-col ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>Rank</div>
+            </div>
+
+            <div className="leaderboard-content" id="leaderboard">
+              {sumobarLoading && (
+                <div className="loading-container">
+                  <div className="loading-text">loading leaderboard...</div>
+                </div>
+              )}
+              {!sumobarLoading && sumobarError && (
+                <div className="loading-container">
+                  <div className="loading-text">{sumobarError}</div>
+                </div>
+              )}
+              {!sumobarLoading &&
+                !sumobarError &&
+                pagedSumobarRows.map((player, index) => {
+                  const displayRank = clampedSumobarPageIndex * pageSize + index + 1;
+                  const safeElo = Number.isFinite(player.elo) ? player.elo : 1500;
+                  const rank = getRankMeta(safeElo);
+                  const placementRates = player.placementRates && player.placementRates.length === 8
+                    ? player.placementRates
+                    : getEstimatedPlacementRates(player.avgPosition, player.matchesPlayed);
+                  const pos1Rate = Math.max(0, placementRates[0] || 0);
+                  const pos2Rate = Math.max(0, placementRates[1] || 0);
+                  const pos3Rate = Math.max(0, placementRates[2] || 0);
+                  const winrateRaw = player.winRatePct ?? pos1Rate;
+                  const winrate = Number.isFinite(winrateRaw) ? Math.round(winrateRaw) : 0;
+                  const kdDiffRaw = player.ratingChange ?? (player.kills - player.deaths);
+                  const kdDiff = Number.isFinite(kdDiffRaw) ? kdDiffRaw : 0;
+                  const kdRaw = player.kd ?? (player.kills / Math.max(player.deaths, 1));
+                  const kd = Number.isFinite(kdRaw) ? kdRaw : 0;
+                  const avgPositionText =
+                    player.avgPosition !== null && Number.isFinite(player.avgPosition) ? player.avgPosition.toFixed(1) : "—";
+                  const avgScoreText =
+                    player.avgScore !== null && Number.isFinite(player.avgScore) ? Math.round(player.avgScore) : "—";
+                  const highScoreText =
+                    player.highScore !== null && Number.isFinite(player.highScore) ? Math.round(player.highScore) : player.kills;
+                  return (
+                    <div key={`${player.playerAuth}-${displayRank}`} className={`leaderboard-entry rank-tint-${rank.class}`}>
+                      <div className="rank-position">{displayRank}</div>
+                      <div className="player">
+                        <Link className="username profile-link" href={`/profile?user=${encodeURIComponent(player.playerAuth)}`}>
+                          {player.playerAuth || "unknown"}
+                        </Link>
+                      </div>
+                      <div className="rating">{Math.round(safeElo)}</div>
+                      <div className={`change ${kdDiff >= 0 ? "positive" : "negative"}`}>
+                        {kdDiff >= 0 ? "+" : ""}
+                        {kdDiff}
+                      </div>
+                      <div className={`last-active ${columnVisibility.lastActive === false ? "is-hidden-column" : ""}`}>{formatLastActive(player.updatedAt)}</div>
+                      <div className={`matches ${columnVisibility.matches === false ? "is-hidden-column" : ""}`}>
+                        <div className="winrate-bar">
+                          <div
+                            className="winrate-fill"
+                            style={{
+                              width: "100%",
+                              background: getSumobarMatchesGradient(player.placementRates, player.avgPosition, player.matchesPlayed)
+                            }}
+                          />
+                        </div>
+                        <span className="matches-count">{player.matchesPlayed}</span>
+                      </div>
+                      <div className={`percentage ${columnVisibility.winrate === false ? "is-hidden-column" : ""}`}>{winrate}%</div>
+                      <div className={`stat avg-place ${columnVisibility.avgPlace === false ? "is-hidden-column" : ""}`}>{avgPositionText}</div>
+                      <div className={`score avg-score-cell ${columnVisibility.avgScore === false ? "is-hidden-column" : ""}`}>{avgScoreText}</div>
+                      <div className={`score high-score ${columnVisibility.highScore === false ? "is-hidden-column" : ""}`}>{highScoreText}</div>
+                      <div className={`kd ${columnVisibility.kd === false ? "is-hidden-column" : ""}`}>{kd.toFixed(2)}</div>
+                      <Link href="/ranks" className={`tier ${rank.class} ${columnVisibility.tier === false ? "is-hidden-column" : ""}`}>
+                        <img className="rank-icon" src={rank.icon} alt={rank.name} />
+                        <span className="rank-name">{rank.name}</span>
+                      </Link>
+                    </div>
+                  );
+                })}
+              {!sumobarLoading && !sumobarError && pagedSumobarRows.length === 0 && (
+                <div className="loading-container">
+                  <div className="loading-text">no leaderboard data returned</div>
+                </div>
+              )}
+            </div>
+
+            <div className="datatable-pagination">
+              <button className="datatable-page-btn" type="button" onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={clampedSumobarPageIndex <= 0}>
+                Previous
+              </button>
+              <div className="datatable-page-indicator">
+                Page {clampedSumobarPageIndex + 1} of {totalSumobarPages}
+              </div>
+              <button
+                className="datatable-page-btn"
+                type="button"
+                onClick={() => setPageIndex((p) => Math.min(totalSumobarPages - 1, p + 1))}
+                disabled={clampedSumobarPageIndex >= totalSumobarPages - 1}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+        {boardMode === "sumobar" && !SUMOBAR_ENABLED && (
           <div className="sumobar-coming-soon">
-            <div className="sumobar-coming-soon-icon">🏗</div>
+            <div className="sumobar-coming-soon-icon">🏗️</div>
             <h2 className="sumobar-coming-soon-title">coming soon</h2>
             <p className="sumobar-coming-soon-text">the sumobar leaderboard is being built and will be available shortly</p>
           </div>
         )}
       </div>
+
+      {boardMode === "sumobar" && SUMOBAR_ENABLED && isSumobarMatchesOpen && (
+        <div className="match-history-overlay" onClick={() => setIsSumobarMatchesOpen(false)}>
+          <div className="match-history-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="match history">
+            <div className="match-history-header">
+              <div className="match-history-title">match history</div>
+              <div className="match-history-meta">sumobar · recent</div>
+              <button className="match-history-close" type="button" onClick={() => setIsSumobarMatchesOpen(false)} aria-label="close match history">
+                ×
+              </button>
+            </div>
+            <div className="match-history-list">
+              {sumobarMatchesLoading && <div className="match-empty">loading matches...</div>}
+              {!sumobarMatchesLoading && sumobarMatchesError && <div className="match-empty">{sumobarMatchesError}</div>}
+              {!sumobarMatchesLoading && !sumobarMatchesError && sumobarMatches.length === 0 && <div className="match-empty">no recent matches returned</div>}
+              {!sumobarMatchesLoading &&
+                !sumobarMatchesError &&
+                sumobarMatches.map((match) => {
+                  const players = match.players ?? [];
+                  const teamsMap = new Map<string, { players: typeof players; teamScore: number }>();
+                  for (const p of players) {
+                    const key = p.team || "unknown";
+                    const existing = teamsMap.get(key);
+                    if (!existing) {
+                      teamsMap.set(key, { players: [p], teamScore: p.score });
+                    } else {
+                      existing.players.push(p);
+                      existing.teamScore += p.score;
+                    }
+                  }
+                  const teamsSorted = [...teamsMap.entries()]
+                    .map(([name, data]) => ({ name, ...data }))
+                    .sort((a, b) => b.teamScore - a.teamScore);
+                  const winnerTeamKey = (match.winnerTeam || "").toLowerCase();
+                  if (teamsSorted.length === 0) {
+                    return (
+                      <div key={match.matchId} className="match-item">
+                        <div className="match-summary">
+                          <span className="match-date">{formatDateTime(match.endedAt)}</span>
+                          <span className="match-sep">|</span>
+                          <span className="match-rounds">{match.roundsPlayed} rounds</span>
+                          <span className="match-sep">|</span>
+                          <span className="match-winner">winner: {(match.winnerTeam || "unknown").toLowerCase()}</span>
+                        </div>
+                        <div className="match-detail-body">
+                          <div className="match-detail-loading">no player data for this match</div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={match.matchId} className="match-item">
+                      <div className="match-summary">
+                        <span className="match-date">{formatDateTime(match.endedAt)}</span>
+                        <span className="match-sep">|</span>
+                        <span className="match-rounds">{match.roundsPlayed} rounds</span>
+                        <span className="match-sep">|</span>
+                        <span className="match-winner">
+                          winner:{" "}
+                          <span
+                            className="match-winner-team"
+                            data-team={SUMOBAR_TEAM_COLORS[teamsSorted.findIndex((t) => t.name === winnerTeamKey)] ?? "gold"}
+                          >
+                            {winnerTeamKey || "unknown"}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="match-detail-body">
+                        <div className="match-table">
+                          <div className="match-table-header">
+                            <span>team</span>
+                            <span>player</span>
+                            <span>team score</span>
+                            <span>player score</span>
+                            <span>k/d</span>
+                          </div>
+                          {teamsSorted.map((team, teamIdx) => {
+                            const colorKey = SUMOBAR_TEAM_COLORS[teamIdx % SUMOBAR_TEAM_COLORS.length];
+                            return (
+                              <div key={`${match.matchId}-${team.name}`}>
+                                <div className="match-table-row match-team-row" data-team={colorKey}>
+                                  <span className="match-team" data-team={colorKey}>
+                                    {team.name}
+                                  </span>
+                                  <span></span>
+                                  <span className="match-team-score">{team.teamScore}</span>
+                                  <span></span>
+                                  <span></span>
+                                </div>
+                                {team.players.map((player, playerIdx) => {
+                                  const kd = player.deaths > 0 ? (player.kills / player.deaths).toFixed(2) : `${player.kills}.00`;
+                                  return (
+                                    <div className="match-table-row" key={`${match.matchId}-${player.playerName}-${playerIdx}`} data-team={colorKey}>
+                                      <span className="match-team"></span>
+                                      <span className="match-player">{player.playerName}</span>
+                                      <span></span>
+                                      <span className="match-player-score">{player.score}</span>
+                                      <span className="match-player-kd">
+                                        {kd}
+                                        <span className="match-kd-breakdown">
+                                          <span className="match-kills">{player.kills}</span>
+                                          <span className="match-kd-sep">/</span>
+                                          <span className="match-deaths">{player.deaths}</span>
+                                        </span>
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="leaderboard-data-credit">
         {boardMode === "sumobar" ? "data provided by RCL" : "data gracefully provided by Nanu and Nelg"}
